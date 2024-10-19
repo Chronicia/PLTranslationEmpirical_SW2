@@ -25,12 +25,20 @@ class Translate:
 
     def __init__(self, dataset) -> None:
         # Set up OpenAI API key
-        self.model = 'GPT-4'
+        self.model = 'gpt-4o-mini'
         self.dataset = dataset
 
     def __enter__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
-        openai.api_key = api_key
+        # api_key = os.getenv("OPENAI_API_KEY")
+        # openai.api_key = api_key
+        # logging.info(f"successfully set up openai api key")
+        if os.getenv("AZURE_OPENAI_ENDPOINT") is not None:
+            openai.api_version = "2024-06-01"
+            openai.api_type = "azure"
+            openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
+            openai.api_key = os.environ.get("OPENAI_API_KEY")
+        else:
+            print("Please ensure the .env file is imported correctly.")
         logging.info(f"successfully set up openai api key")
 
         self.main_dir = os.getcwd()
@@ -53,8 +61,9 @@ class Translate:
 
     def send_message_to_openai(self, message_log):
         "Use OpenAI's ChatCompletion API to get the chatbot's response"
-        encoding = tiktoken.encoding_for_model("gpt-4")
+        encoding = tiktoken.get_encoding("cl100k_base")
         num_tokens = len(encoding.encode(message_log[1]["content"]))
+        logging.info(f"num_tokens: {num_tokens}")
 
         response = "exceptional case"
         is_success = False
@@ -62,19 +71,24 @@ class Translate:
         while max_attempts > 0:
             try:
                 response = openai.ChatCompletion.create(
-                    model="gpt-4",  # The name of the OpenAI chatbot model to use
+                    engine=self.model,  # The name of the OpenAI chatbot model to use
                     # The conversation history up to this point, as a list of dictionaries
                     messages=message_log,
-                    # The maximum number of tokens (words or subwords) in the generated response
-                    max_tokens=max(1, 8000-num_tokens),
+                    # # The maximum number of tokens (words or subwords) in the generated response
+                    # max_tokens=max(1, 8000-num_tokens),
                     # The "creativity" of the generated response (higher temperature = more creative)
                     temperature=0.7,
                 )
                 is_success = True
                 break
-            except openai.error.InvalidRequestError as e:
-                return "# Token size exceeded."
-            except:
+            # except openai.error.InvalidRequestError as e:
+            #     return "# Token size exceeded."
+            # except:
+            #     max_attempts -= 1
+            #     continue
+            except openai.OpenAIError as e:
+                # Handle all OpenAI API errors
+                print(f"Error: {e}")
                 max_attempts -= 1
                 continue
 
@@ -95,12 +109,14 @@ class Translate:
         message = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": content}]
+        # logging.info("translate_with_OPENAI: sending message to openai")
         response = self.send_message_to_openai(message)
         return response.replace(f"```{to.lower()}", "").replace("```", "")
 
     def translate(self, source, target):
+        logging.info("translate: starting translation")
         snippets = list(self.input_dir.joinpath(str(source), "Code").iterdir())
-
+        
         for source_file in tqdm(snippets, total=len(snippets), bar_format="{desc:<5.5}{percentage:3.0f}%|{bar:10}{r_bar}"):
             code_id = source_file.stem
             code_as_str = source_file.read_text(encoding="utf-8")
@@ -110,10 +126,10 @@ class Translate:
                 target_dir.mkdir(parents=True)
 
             filename_of_translated_code = target_dir.joinpath(f"{code_id}.{Translate.EXTENSTIONS[target]}")
-
-            translated_code_fp = Path(filename_of_translated_code)
-            if translated_code_fp.exists():
-                continue
+            # logging.info("translate: translating code")
+            # translated_code_fp = Path(filename_of_translated_code)
+            # if translated_code_fp.exists():
+            #     continue
 
             translated_code = self.translate_with_OPENAI(source, code_as_str, target)
             translated_code = re.sub('public\s*class\s*.+', 'public class ' + code_id + ' {', translated_code)
