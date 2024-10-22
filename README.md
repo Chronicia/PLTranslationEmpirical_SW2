@@ -1,14 +1,17 @@
 # Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code
 
-Artifact repository for the paper [_Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code_](http://arxiv.org/abs/2308.03109), accepted at _ICSE 2024_, Lisbon, Portugal.
-Authors are [Rangeet Pan][rangeet]* [Ali Reza Ibrahimzada][ali]*, [Rahul Krishna][rahul], Divya Sankar, Lambert Pougeum Wassi, Michele Merler, Boris Sobolev, Raju Pavuluri, Saurabh Sinha, and [Reyhaneh Jabbarvand][reyhaneh].
+### To-do List
+- [x] Update README:
+  - [x] Instructions for install repo, dependencies
+  - [x] Download artifacts and datasets
+  - [x] Run translation and benchmark
+  - [x] Put unimportant things in the end 
+- [ ] Change requirements.txt to openai-api 1.0+
+- [ ] Migrate [translations.py](http://translations.py) to openai-api 1.0+
+- [ ] Make translation output with Azure GPT-4o-mini
+- [ ] Benchmark accuracy of output codes
+- [ ] (optional) Find other accessible LLMs, then make translation output with them
 
-[rangeet]: https://rangeetpan.github.io/
-[ali]: https://alirezai.cs.illinois.edu/
-[rahul]: http://rkrsn.us/
-[reyhaneh]: https://reyhaneh.cs.illinois.edu/index.htm
-
-# 🚨🚨🚨 [Code Lingua Leaderboard](https://codetlingua.github.io) 🚨🚨🚨
 
 ### Install
 ```
@@ -59,7 +62,7 @@ Inside `dataset.zip`, organized as follow:
 4. [Apache Commons-CLI](https://github.com/apache/commons-cli)
 5. [Click](https://github.com/pallets/click)
 
-Please download and unzip the `dataset.zip` file from Zenodo. After unzipping, you should see the following directory structure:
+Directory structure:
 
 ```
 PLTranslationEmpirical
@@ -73,14 +76,14 @@ PLTranslationEmpirical
 
 The structure of each dataset is as follows:
 
-1. CodeNet & Avatar: Each directory in these datasets correspond to a source language where each include two directories `Code` and `TestCases` for code snippets and test cases, respectively. Each code snippet has an `id` in the filename, where the `id` is used as a prefix for test I/O files.
+1. CodeNet & Avatar: /source-language/`Code`, `TestCases`. Each code snippet has an `id` in the filename, which is the same in both `Code` and `TestCases`.
 
 2. Evalplus: The source language code snippets follow a similar structure as CodeNet and Avatar. However, as a one time effort, we manually created the test cases in the target Java language inside a maven project, `evalplus_java`. To evaluate the translations from an LLM, we recommend moving the generated Java code snippets to the `src/main/java` directory of the maven project and then running the command `mvn clean test surefire-report:report -Dmaven.test.failure.ignore=true` to compile, test, and generate reports for the translations.
 
 3. Real-life Projects: The `real-life-cli` directory represents two real-life CLI projects from Java and Python. These datasets only contain code snippets as files and no test cases. As mentioned in the paper, the authors manually evaluated the translations for these datasets.
 
 ### Scripts
-We provide bash scripts for reproducing our results in this work. First, we discuss the translation script. For doing translation with a model and dataset, first you need to create a `.env` file in the repository and add the following:
+Create a `.env` file in the repository and add the following:
 
 ```
 OPENAI_API_KEY=<your openai api key>
@@ -88,12 +91,14 @@ LLAMA2_AUTH_TOKEN=<your llama2 auth token from huggingface>
 STARCODER_AUTH_TOKEN=<your starcoder auth token from huggingface>
 ```
 
-1. Translation with GPT-4: You can run the following command to translate all `Python -> Java` code snippets in `codenet` dataset with the `GPT-4` while top-k sampling is `k=50`, top-p sampling is `p=0.95`, and `temperature=0.7`:
+1. Translation with GPT-4: 
+
+Example: Translate `Python -> Java`, dataset `codenet`, model `GPT-4`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.7`. Run the command:
 ```
 bash scripts/translate.sh GPT-4 codenet Python Java 50 0.95 0.7 0
 ```
 
-2. Translation with CodeGeeX: Prior to running the script, you need to clone the CodeGeeX repository from [here](https://github.com/THUDM/CodeGeeX) and use the instructions from their artifacts to download their model weights. After cloning it inside `PLTranslationEmpirical` and downloading the model weights, your directory structure should be like the following:
+2. Translation with CodeGeeX: Need to clone CodeGeeX repository from https://github.com/THUDM/CodeGeeX and use the instructions from their artifacts to download their model weights. After cloning it inside `PLTranslationEmpirical` and downloading the model weights, your directory structure should be like the following:
 
 ```
 PLTranslationEmpirical
@@ -109,12 +114,14 @@ PLTranslationEmpirical
 ├── ...
 ```
 
-You can run the following command to translate all `Python -> Java` code snippets in `codenet` dataset with the `CodeGeeX` while top-k sampling is `k=50`, top-p sampling is `p=0.95`, and `temperature=0.2` on GPU `gpu_id=0`:
+Translate `Python -> Java`, dataset `codenet`, model `CodeGeeX`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.2`, on GPU `gpu_id=0`:
 ```
 bash scripts/translate.sh CodeGeeX codenet Python Java 50 0.95 0.2 0
 ```
 
-3. For all other models (StarCoder, CodeGen, LLaMa, TB-Airoboros, TB-Vicuna), you can execute the following command to translate all `Python -> Java` code snippets in `codenet` dataset with the `StarCoder|CodeGen|LLaMa|TB-Airoboros|TB-Vicuna` while top-k sampling is `k=50`, top-p sampling is `p=0.95`, and `temperature=0.2` on GPU `gpu_id=0`:
+3. All other models (StarCoder, CodeGen, LLaMa, TB-Airoboros, TB-Vicuna)
+
+Translate `Python -> Java`, dataset `codenet`, model: `StarCoder|CodeGen|LLaMa|TB-Airoboros|TB-Vicuna`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.2`, on GPU `gpu_id=0`:
 ```
 bash scripts/translate.sh StarCoder codenet Python Java 50 0.95 0.2 0
 ```
@@ -150,10 +157,10 @@ Please note that for the above commands, you can change the dataset and model na
 
 ### Artifacts
 Brief content:
-1. RQ1 - Translations: **Translation files from all LLMs for all datasets**. (Excel) Breakdown of translation results.
-2. RQ2 - Manual Labeling: (Excel) **manual labeling results for all translation bugs**.
-3. RQ3 - Alternative Approaches: **Translation files from all alternative approaches** (i.e., C2Rust, CxGO, Java2C#). (Excel) Breakdown of the translation results.
-4. RQ4 - Mitigating Translation Bugs: This directory contains the fix results of GPT-4, StarCoder, CodeGen, and Llama 2. We have added an excel file to show a detailed breakdown of the fix results.
+1. RQ1 - Translations: Translation files from all LLMs for all datasets. (.xlsx) Breakdown of translation results.
+2. RQ2 - Manual Labeling: (.xlsx) Manual labeling results for all translation bugs.
+3. RQ3 - Alternative Approaches: Translation files from all alternative approaches (i.e. C2Rust, CxGO, Java2C#). (.xlsx) Breakdown of the translation results.
+4. RQ4 - Mitigating Translation Bugs: Fix results of GPT-4, StarCoder, CodeGen, and Llama 2. (.xlsx) Breakdown of the fix results.
 
 ### Contact
 We look forward to hearing your feedback. Please contact [Rangeet Pan](mailto:rangeet.pan@ibm.com) or [Ali Reza Ibrahimzada](mailto:alirezai@illinois.edu) for any questions or comments 🙏.
@@ -168,3 +175,13 @@ We look forward to hearing your feedback. Please contact [Rangeet Pan](mailto:ra
 [![Artifacts](https://img.shields.io/badge/check-artifacts-blue)](README.md#artifacts)
 [![GitHub](https://img.shields.io/github/license/Intelligent-CAT-Lab/PLTranslationEmpirical?color=blue)](LICENSE)
 [![Data](https://zenodo.org/badge/DOI/10.5281/zenodo.8190051.svg)](https://zenodo.org/doi/10.5281/zenodo.8190051)
+
+Artifact repository for the paper [_Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code_](http://arxiv.org/abs/2308.03109), accepted at _ICSE 2024_, Lisbon, Portugal.
+Authors are [Rangeet Pan][rangeet]* [Ali Reza Ibrahimzada][ali]*, [Rahul Krishna][rahul], Divya Sankar, Lambert Pougeum Wassi, Michele Merler, Boris Sobolev, Raju Pavuluri, Saurabh Sinha, and [Reyhaneh Jabbarvand][reyhaneh].
+
+[rangeet]: https://rangeetpan.github.io/
+[ali]: https://alirezai.cs.illinois.edu/
+[rahul]: http://rkrsn.us/
+[reyhaneh]: https://reyhaneh.cs.illinois.edu/index.htm
+
+Code Lingua Leaderboard: https://codetlingua.github.io
