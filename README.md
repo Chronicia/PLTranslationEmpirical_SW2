@@ -1,16 +1,5 @@
 # Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code
 
-<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_evaluated_reusable_v1_1.png" alt="ACM Artifacts Evaluated - Reusable v1.1" width="114" height="113"/>
-<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_available_v1_1.png" alt="ACM Artifacts Available v1.1" width="114" height="113"/>
-
-[![Preprint](https://img.shields.io/badge/read-preprint-blue)](http://arxiv.org/abs/2308.03109)
-[![Install](https://img.shields.io/badge/install-instructions-blue)](README.md#install)
-[![Dependencies](https://img.shields.io/badge/install-dependencies-blue)](README.md#dependencies)
-[![Scripts](https://img.shields.io/badge/run-scripts-blue)](README.md#scripts)
-[![Artifacts](https://img.shields.io/badge/check-artifacts-blue)](README.md#artifacts)
-[![GitHub](https://img.shields.io/github/license/Intelligent-CAT-Lab/PLTranslationEmpirical?color=blue)](LICENSE)
-[![Data](https://zenodo.org/badge/DOI/10.5281/zenodo.8190051.svg)](https://zenodo.org/doi/10.5281/zenodo.8190051)
-
 Artifact repository for the paper [_Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code_](http://arxiv.org/abs/2308.03109), accepted at _ICSE 2024_, Lisbon, Portugal.
 Authors are [Rangeet Pan][rangeet]* [Ali Reza Ibrahimzada][ali]*, [Rahul Krishna][rahul], Divya Sankar, Lambert Pougeum Wassi, Michele Merler, Boris Sobolev, Raju Pavuluri, Saurabh Sinha, and [Reyhaneh Jabbarvand][reyhaneh].
 
@@ -22,37 +11,32 @@ Authors are [Rangeet Pan][rangeet]* [Ali Reza Ibrahimzada][ali]*, [Rahul Krishna
 # 🚨🚨🚨 [Code Lingua Leaderboard](https://codetlingua.github.io) 🚨🚨🚨
 
 ### Install
-This repository contains the source code for reproducing the results in our paper. Please start by cloning this repository:
 ```
 git clone https://github.com/Intelligent-CAT-Lab/PLTranslationEmpirical
 ```
-
-We recommend using a virtual environment for running the scripts. Please download `conda 23.11.0` from this [link](https://docs.conda.io/projects/miniconda/en/latest/miniconda-other-installer-links.html). You can create a virtual environment using the following command:
+(If needed) Download `conda 23.11.0` from this [link](https://docs.conda.io/projects/miniconda/en/latest/miniconda-other-installer-links.html). Then create virtual env and activate it:
 ```
 conda create -n plempirical python=3.10.13
-```
-
-After creating the virtual environment, you can activate it using the following command:
-```
 conda activate plempirical
 ```
 
-You can run the following command to make sure that you are using the correct version of Python:
+Checky python3 and pip version:
 ```
 python3 --version && pip3 --version
 ```
+Download both `dataset.zip` and `artifacts.zip` from [Zenodo](https://zenodo.org/doi/10.5281/zenodo.8190051) repository
 
 ### Dependencies
-To install all software dependencies, please execute the following command:
+**Software dependencies**: in requirements.txt
 ```
 pip3 install -r requirements.txt
 ```
 
-As for hardware dependencies, we used 16 NVIDIA A100 GPUs with 80GBs of memory for inferencing models. The models can be inferenced on any combination of GPUs as long as the reader can properly distribute the model weights across the GPUs. We did not perform weight distribution since we had enough memory (80 GB) per GPU.
+Not included, but needed to run code: Python 3.10, g++ 11, GCC Clang 14.0, Java 11, Go 1.20, Rust 1.73, and .Net 7.0.14 for Python, C++, C, Java, Go, Rust, and C#.
 
-Moreover, for compiling and testing the generated translations, we used Python 3.10, g++ 11, GCC Clang 14.0, Java 11, Go 1.20, Rust 1.73, and .Net 7.0.14 for Python, C++, C, Java, Go, Rust, and C#, respectively. Overall, we recommend using a machine with Linux OS and at least 32GB of RAM for running the scripts.
+**Hardware dependencies**: 16 NVIDIA A100 GPUs, 80GBs memory each for inferencing models. Memory need to be enough so that all model weights can be loaded into memory.
 
-For running scripts of alternative approaches, you need to make sure you have installed [C2Rust](https://github.com/immunant/c2rust), [CxGO](https://github.com/gotranspile/cxgo), and [Java2C#](https://github.com/paulirwin/JavaToCSharp) on your machine. Please refer to their repositories for installation instructions. For Java2C#, you need to create a `.csproj` file like below:
+**To run scripts of non-LLM Methods**: install [C2Rust](https://github.com/immunant/c2rust), [CxGO](https://github.com/gotranspile/cxgo), and [Java2C#](https://github.com/paulirwin/JavaToCSharp). Please refer to their repositories for installation instructions. For Java2C#, you need to create a `.csproj` file like below:
 ```
 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -67,7 +51,7 @@ For running scripts of alternative approaches, you need to make sure you have in
 ```
 
 ### Dataset
-We uploaded the dataset we used in our empirical study to [Zenodo](https://zenodo.org/doi/10.5281/zenodo.8190051). The dataset is organized as follows:
+Inside `dataset.zip`, organized as follow:
 
 1. [CodeNet](https://github.com/IBM/Project_CodeNet)
 2. [AVATAR](https://github.com/wasiahmad/AVATAR)
@@ -165,11 +149,22 @@ bash scripts/clean_generations.sh StarCoder codenet
 Please note that for the above commands, you can change the dataset and model name to execute the same thing for other datasets and models. Moreover, you can refer to [`/prompts`](/prompts/README.md) for different vanilla and repair prompts used in our study.
 
 ### Artifacts
-Please download the `artifacts.zip` file from our [Zenodo](https://zenodo.org/doi/10.5281/zenodo.8190051) repository. We have organized the artifacts as follows:
-1. RQ1 - Translations: This directory contains the translations from all LLMs and for all datasets. We have added an excel file to show a detailed breakdown of the translation results.
-2. RQ2 - Manual Labeling: This directory contains an excel file which includes the manual labeling results for all translation bugs.
-3. RQ3 - Alternative Approaches: This directory contains the translations from all alternative approaches (i.e., C2Rust, CxGO, Java2C#). We have added an excel file to show a detailed breakdown of the translation results.
+Brief content:
+1. RQ1 - Translations: **Translation files from all LLMs for all datasets**. (Excel) Breakdown of translation results.
+2. RQ2 - Manual Labeling: (Excel) **manual labeling results for all translation bugs**.
+3. RQ3 - Alternative Approaches: **Translation files from all alternative approaches** (i.e., C2Rust, CxGO, Java2C#). (Excel) Breakdown of the translation results.
 4. RQ4 - Mitigating Translation Bugs: This directory contains the fix results of GPT-4, StarCoder, CodeGen, and Llama 2. We have added an excel file to show a detailed breakdown of the fix results.
 
 ### Contact
 We look forward to hearing your feedback. Please contact [Rangeet Pan](mailto:rangeet.pan@ibm.com) or [Ali Reza Ibrahimzada](mailto:alirezai@illinois.edu) for any questions or comments 🙏.
+
+<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_evaluated_reusable_v1_1.png" alt="ACM Artifacts Evaluated - Reusable v1.1" width="114" height="113"/>
+<img padding="10" align="right" src="https://www.acm.org/binaries/content/gallery/acm/publications/artifact-review-v1_1-badges/artifacts_available_v1_1.png" alt="ACM Artifacts Available v1.1" width="114" height="113"/>
+
+[![Preprint](https://img.shields.io/badge/read-preprint-blue)](http://arxiv.org/abs/2308.03109)
+[![Install](https://img.shields.io/badge/install-instructions-blue)](README.md#install)
+[![Dependencies](https://img.shields.io/badge/install-dependencies-blue)](README.md#dependencies)
+[![Scripts](https://img.shields.io/badge/run-scripts-blue)](README.md#scripts)
+[![Artifacts](https://img.shields.io/badge/check-artifacts-blue)](README.md#artifacts)
+[![GitHub](https://img.shields.io/github/license/Intelligent-CAT-Lab/PLTranslationEmpirical?color=blue)](LICENSE)
+[![Data](https://zenodo.org/badge/DOI/10.5281/zenodo.8190051.svg)](https://zenodo.org/doi/10.5281/zenodo.8190051)
