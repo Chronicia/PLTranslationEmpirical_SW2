@@ -6,7 +6,7 @@
   - [x] Download artifacts and datasets
   - [x] Run translation and benchmark
   - [x] Put unimportant things in the end 
-- [ ] Change requirements.txt to openai-api 1.0+
+- [x] Change requirements.txt to openai-api 1.0+
 - [ ] Migrate [translations.py](http://translations.py) to openai-api 1.0+
 - [ ] Make translation output with Azure GPT-4o-mini
 - [ ] Benchmark accuracy of output codes
@@ -86,16 +86,17 @@ The structure of each dataset is as follows:
 Create a `.env` file in the repository and add the following:
 
 ```
+AZURE_OPENAI_ENDPOINT=
 OPENAI_API_KEY=<your openai api key>
 LLAMA2_AUTH_TOKEN=<your llama2 auth token from huggingface>
 STARCODER_AUTH_TOKEN=<your starcoder auth token from huggingface>
 ```
 
-1. Translation with GPT-4: 
+1. Translation with gpt-4o-mini: 
 
-Example: Translate `Python -> Java`, dataset `codenet`, model `GPT-4`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.7`. Run the command:
+Example: Translate `Python -> Java`, dataset `codenet`, model `gpt-4o-mini`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.7`. Run the command:
 ```
-bash scripts/translate.sh GPT-4 codenet Python Java 50 0.95 0.7 0
+bash scripts/translate.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0
 ```
 
 2. Translation with CodeGeeX: Need to clone CodeGeeX repository from https://github.com/THUDM/CodeGeeX and use the instructions from their artifacts to download their model weights. After cloning it inside `PLTranslationEmpirical` and downloading the model weights, your directory structure should be like the following:
@@ -134,18 +135,18 @@ bash scripts/translate_transpiler.sh codenet Java C# java2c# fix_reports
 bash scripts/translate_transpiler.sh avatar Java C# java2c# fix_reports
 ```
 
-5. For compile and testing of CodeNet, AVATAR, and Evalplus (Python to Java) translations from GPT-4, and generating fix reports, you can run the following commands:
+5. For compile and testing of CodeNet, AVATAR, and Evalplus (Python to Java) translations from gpt-4o-mini, and generating fix reports, you can run the following commands:
 ```
-bash scripts/test_avatar.sh Python Java GPT-4 fix_reports 1
-bash scripts/test_codenet.sh Python Java GPT-4 fix_reports 1
-bash scripts/test_evalplus.sh Python Java GPT-4 fix_reports 1
+bash scripts/test_avatar.sh Python Java gpt-4o-mini fix_reports 1
+bash scripts/test_codenet.sh Python Java gpt-4o-mini fix_reports 1
+bash scripts/test_evalplus.sh Python Java gpt-4o-mini fix_reports 1
 ```
 
-6. For repairing unsuccessful translations of Java -> Python in CodeNet dataset with GPT-4, you can run the following commands:
+6. For repairing unsuccessful translations of Java -> Python in CodeNet dataset with gpt-4o-mini, you can run the following commands:
 ```
-bash scripts/repair.sh GPT-4 codenet Python Java 50 0.95 0.7 0 1 compile
-bash scripts/repair.sh GPT-4 codenet Python Java 50 0.95 0.7 0 1 runtime
-bash scripts/repair.sh GPT-4 codenet Python Java 50 0.95 0.7 0 1 incorrect
+bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 compile
+bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 runtime
+bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 incorrect
 ```
 
 7. For cleaning translations of open-source LLMs (i.e., StarCoder) in codenet, you can run the following command:
