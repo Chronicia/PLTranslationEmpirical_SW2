@@ -92,7 +92,7 @@ LLAMA2_AUTH_TOKEN=<your llama2 auth token from huggingface>
 STARCODER_AUTH_TOKEN=<your starcoder auth token from huggingface>
 ```
 
-1. Translation with gpt-4o-mini: 
+1. Translation with gpt-4o/gpt-4o-mini: 
 
 Example: Translate `Python -> Java`, dataset `codenet`, model `gpt-4o-mini`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.7`. Run the command:
 ```

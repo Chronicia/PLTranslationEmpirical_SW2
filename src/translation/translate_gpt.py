@@ -22,25 +22,15 @@ class Translate:
         "C#": "cs"
     }
 
-    def __init__(self, dataset) -> None:
+    def __init__(self, model, dataset) -> None:
         # Set up OpenAI API key
-        self.model = 'gpt-4o-mini'
+        self.model = model
         self.dataset = dataset
 
     def __enter__(self):
-        # api_key = os.getenv("OPENAI_API_KEY")
+        # api_key = os.getenv("CHATBOT_API_KEY")
         # openai.api_key = api_key
         # logging.info(f"successfully set up openai api key")
-
-        if os.getenv("AZURE_OPENAI_ENDPOINT") is not None:
-            client = AzureOpenAI(
-                azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"), 
-                api_key=os.getenv("OPENAI_API_KEY"),  
-                api_version="2024-06-01"
-            )
-        else:
-            print("Please ensure the .env file is imported correctly.")        
-        logging.info(f"successfully set up openai api key")
 
         self.main_dir = os.getcwd()
         self.output_dir = os.path.join(self.main_dir, "output")
@@ -71,8 +61,8 @@ class Translate:
         max_attempts = 5
         while max_attempts > 0:
             try:
-                response = openai.ChatCompletion.create(
-                    engine=self.model,  # The name of the OpenAI chatbot model to use
+                response = client.chat.completions.create(
+                    model=self.model,  # The name of the OpenAI chatbot model to use
                     # The conversation history up to this point, as a list of dictionaries
                     messages=message_log,
                     # # The maximum number of tokens (words or subwords) in the generated response
@@ -87,7 +77,7 @@ class Translate:
             # except:
             #     max_attempts -= 1
             #     continue
-            except openai.OpenAIError as e:
+            except client.OpenAIError as e:
                 # Handle all OpenAI API errors
                 print(f"Error: {e}")
                 max_attempts -= 1
@@ -149,7 +139,18 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    parser = argparse.ArgumentParser(description='run translation with GPT-4 with a given dataset and languages')
+    if os.getenv("AZURE_OPENAI_ENDPOINT") is None or os.getenv("CHATBOT_API_KEY") is None:
+        print("Please ensure the .env file is imported correctly.")
+
+    client = AzureOpenAI(
+        api_version = "2024-06-01",
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key = os.environ.get("CHATBOT_API_KEY"),
+    )
+    logging.info(f"successfully set up openai api key")
+    
+    parser = argparse.ArgumentParser(description='run translation with OpenAI\'s GPT models given dataset and languages')
+    parser.add_argument('--model', help='model to use for code translation. should be one of [gpt-4o,gpt-4o-mini,...]', required=True, type=str)
     parser.add_argument('--dataset', help='dataset to use for code translation. should be one of [codenet,avatar,evalplus]', required=True, type=str)
     parser.add_argument('--source_lang', help='source language to use for code translation. should be one of [Python,Java,C,C++,Go]', required=True, type=str)
     parser.add_argument('--target_lang', help='target language to use for code translation. should be one of [Python,Java,C,C++,Go]', required=True, type=str)
@@ -160,6 +161,6 @@ if __name__ == "__main__":
 
     source = args.source_lang
     target = args.target_lang
-    with Translate(args.dataset) as translator:
-        logging.info(f"translating examples from {source} to {target} using GPT-4 and {args.dataset} dataset")
+    with Translate(args.model, args.dataset) as translator:
+        logging.info(f"translating examples from {source} to {target} using {args.model} and {args.dataset} dataset")
         translator.translate(source, target)
