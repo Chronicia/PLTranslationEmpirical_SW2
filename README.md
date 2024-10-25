@@ -7,8 +7,8 @@
   - [x] Run translation and benchmark
   - [x] Put unimportant things in the end 
 - [x] Change requirements.txt to openai-api 1.0+
-- [ ] Migrate [translations.py](http://translations.py) to openai-api 1.0+
-- [ ] Make translation output with Azure GPT-4o-mini
+- [x] Migrate [translations.py](http://translations.py) to openai-api 1.0+
+- [x] Make translation output with Azure GPT-4o-mini
 - [ ] Benchmark accuracy of output codes
 - [ ] (optional) Find other accessible LLMs, then make translation output with them
 
