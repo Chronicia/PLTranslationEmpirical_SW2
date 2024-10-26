@@ -87,7 +87,7 @@ Create a `.env` file in the repository and add the following:
 
 ```
 AZURE_OPENAI_ENDPOINT=
-OPENAI_API_KEY=<your openai api key>
+CHATBOT_API_KEY=<your openai api key>
 LLAMA2_AUTH_TOKEN=<your llama2 auth token from huggingface>
 STARCODER_AUTH_TOKEN=<your starcoder auth token from huggingface>
 ```
@@ -142,7 +142,7 @@ bash scripts/test_codenet.sh Python Java gpt-4o-mini fix_reports 1
 bash scripts/test_evalplus.sh Python Java gpt-4o-mini fix_reports 1
 ```
 
-6. For repairing unsuccessful translations of Java -> Python in CodeNet dataset with gpt-4o-mini, you can run the following commands:
+6. For repairing unsuccessful translations of `Python` to `Java` in `CodeNet` dataset with `gpt-4o-mini`, you can run the following commands:
 ```
 bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 compile
 bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 runtime
