@@ -13,6 +13,7 @@ def main(args):
     test_dir = f"dataset/{dataset}/{args.source_lang}/TestCases"
     os.makedirs(args.report_dir, exist_ok=True)
     files = [f for f in os.listdir(translation_dir) if f != '.DS_Store']
+    timestamp = args.timestamp
 
     compile_failed = []
     test_passed =[]
@@ -61,7 +62,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=5)
 
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
@@ -69,7 +70,7 @@ def main(args):
                 p = Popen(['java', files[i].split(".")[0]], cwd=translation_dir, stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -242,7 +243,12 @@ def main(args):
     infinite_loop = list(set(infinite_loop))
     test_passed = list(set(test_passed))
 
-    txt_fp = Path(args.report_dir).joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+".txt")
+    # Create a uniquely named folder path using timestamp, model, dataset, and languages
+    folder_name = f"{timestamp}_{args.model}_{dataset}_{args.source_lang}_to_{args.target_lang}"
+    folder_path = Path(args.report_dir).joinpath(folder_name)
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+    txt_fp = folder_path.joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+".txt")
     with open(txt_fp, "w", encoding="utf-8") as report:
         report.writelines("Total Instances: {}\n\n".format(len(test_passed)+len(compile_failed)+len(runtime_failed)+len(test_failed)+len(infinite_loop)))
         report.writelines("Total Correct: {}\n".format(len(test_passed)))
@@ -282,10 +288,10 @@ def main(args):
         df.loc[index] = list_row
         index+=1
 
-    excel_fp = Path(args.report_dir).joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+".xlsx")
+    excel_fp = folder_path.joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+".xlsx")
     df.to_excel(excel_fp, sheet_name='Sheet1')
 
-    ordered_unsuccessful_fp = Path(args.report_dir).joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+"_ordered_unsuccessful.txt")
+    ordered_unsuccessful_fp = folder_path.joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+"_ordered_unsuccessful.txt")
     with open(ordered_unsuccessful_fp, 'w') as f:
         for unsuccessful_instance in compile_failed + runtime_failed + test_failed + infinite_loop:
             f.write(f"{unsuccessful_instance}\n")
@@ -297,6 +303,7 @@ if __name__ == "__main__":
     parser.add_argument('--target_lang', help='target language to use for code translation. should be one of [Python,Java,C,C++,Go]', required=True, type=str)
     parser.add_argument('--model', help='model to use for code translation.', required=True, type=str)
     parser.add_argument('--report_dir', help='path to directory to store report', required=True, type=str)
+    parser.add_argument('--timestamp', help='Timestamp for uniquely identifying the report', required=True, type=str)
     args = parser.parse_args()
 
     main(args)

@@ -30,5 +30,8 @@ MODEL=$3;
 OUTPUT_DIR=$4;
 ATTEMPT=$5;
 
-python3 src/test/compile_codenet.py --source_lang $SRC_LANG --target_lang $TRG_LANG --model $MODEL --report_dir $OUTPUT_DIR;
-python3 src/test/compile_codenet_feedback.py --source_lang $SRC_LANG --target_lang $TRG_LANG --model $MODEL --report_dir $OUTPUT_DIR --attempt $ATTEMPT;
+# Define the timestamp variable in the format YYYYMMDD_HHMMSS
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+python3 src/test/compile_codenet.py --source_lang $SRC_LANG --target_lang $TRG_LANG --model $MODEL --report_dir $OUTPUT_DIR --timestamp "$TIMESTAMP";
+python3 src/test/compile_codenet_feedback.py --source_lang $SRC_LANG --target_lang $TRG_LANG --model $MODEL --report_dir $OUTPUT_DIR --attempt $ATTEMPT --timestamp "$TIMESTAMP";
