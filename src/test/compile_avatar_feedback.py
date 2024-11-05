@@ -12,6 +12,7 @@ def main(args):
     translation_dir = f"output/{args.model}/{dataset}/{args.source_lang}/{args.target_lang}"
     test_dir = f"dataset/{dataset}/{args.source_lang}/TestCases"
     files = [f for f in os.listdir(translation_dir) if f != '.DS_Store']
+    timestamp = args.timestamp
 
     compile_failed = []
     test_passed =[]
@@ -22,7 +23,12 @@ def main(args):
     infinite_loop = []
     token_exceeded = []
 
-    ordered_unsuccessful_fp = Path(args.report_dir).joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+"_ordered_unsuccessful.txt")
+    # Create a uniquely named folder path using timestamp, model, dataset, and languages
+    folder_name = f"{timestamp}_{args.model}_{dataset}_{args.source_lang}_to_{args.target_lang}"
+    folder_path = Path(args.report_dir).joinpath(folder_name)
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+    ordered_unsuccessful_fp = folder_path.joinpath(f"{args.model}_{dataset}_compileReport_from_"+str(args.source_lang)+"_to_"+str(args.target_lang)+"_ordered_unsuccessful.txt")
     ordered_files = [x.strip() for x in open(ordered_unsuccessful_fp, "r").readlines()]
 
     if args.target_lang =="Python":
@@ -33,7 +39,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -50,7 +56,7 @@ def main(args):
                     p = Popen(['python3', translation_dir+"/"+ files[i]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -100,7 +106,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -117,7 +123,7 @@ def main(args):
                     p = Popen(['java', files[i].split(".")[0]], cwd=translation_dir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -189,7 +195,7 @@ def main(args):
                     p = Popen(['./a.out'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -256,7 +262,7 @@ def main(args):
                     p = Popen(['./exec_output'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -306,7 +312,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=10)
                 
                 tests_passed = 0
                 for j in range(1000):
@@ -323,7 +329,7 @@ def main(args):
                     p = Popen(["./"+files[i].split(".")[0]], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -369,13 +375,15 @@ def main(args):
         print("language:{} is not yet supported. select from the following languages[Python,Java,C++,C,Go]".format(args.target_lang))
         return
 
-    json_fp = Path(args.report_dir).joinpath(f"{args.model}_avatar_errors_from_{args.source_lang}_to_{args.target_lang}_{args.attempt}.json")
+    attempt = args.attempt
+
+    json_fp = folder_path.joinpath(f"{args.model}_codenet_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.json")
     with open(json_fp, "w", encoding="utf-8") as report:
         error_files = {'compile': compile_failed, 'runtime': runtime_failed + infinite_loop, 'incorrect': test_failed}
         json.dump(error_files, report)
         report.close()
 
-    txt_fp = Path(args.report_dir).joinpath(f"{args.model}_avatar_errors_from_{args.source_lang}_to_{args.target_lang}_{args.attempt}.txt")
+    txt_fp = folder_path.joinpath(f"{timestamp}_{args.model}_codenet_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.txt")
     report = open(txt_fp, 'w')
     for i in range(len(ordered_files)):
         if ordered_files[i] in [x[0] for x in compile_failed]:
@@ -402,6 +410,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', help='model to use for code translation.', required=True, type=str)
     parser.add_argument('--report_dir', help='path to directory to store report', required=True, type=str)
     parser.add_argument('--attempt', help='attempt number', required=True, type=int)
+    parser.add_argument('--timestamp', help='Timestamp for uniquely identifying the report', required=True, type=str)
     args = parser.parse_args()
 
     main(args)
