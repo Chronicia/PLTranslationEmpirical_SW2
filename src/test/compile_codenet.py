@@ -29,7 +29,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=5)
+                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
@@ -38,7 +38,7 @@ def main(args):
                 p = Popen(['python3', translation_dir+"/"+ files[i]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -62,7 +62,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=5)
+                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
@@ -70,7 +70,7 @@ def main(args):
                 p = Popen(['java', files[i].split(".")[0]], cwd=translation_dir, stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -100,7 +100,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("g++ -o exec_output -std=c++11 " + translation_dir+ "/"+ files[i], check=True, capture_output=True, shell=True)
+                subprocess.run("g++ -o exec_output -std=c++11 " + translation_dir+ "/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
@@ -109,7 +109,7 @@ def main(args):
                 p = Popen(['./exec_output'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -134,7 +134,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("gcc "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=5)
+                subprocess.run("gcc "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
@@ -142,7 +142,7 @@ def main(args):
                 p = Popen(['./a.out'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -166,14 +166,14 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("go build "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=5)
+                subprocess.run("go build "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
                 f_out = open(test_dir+"/"+ files[i].split(".")[0]+"_out.txt", "r").read()
                 p = Popen(["./"+files[i].split(".")[0]], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue
@@ -209,11 +209,11 @@ def main(args):
                 
                 f_out = open(f"dataset/codenet/{args.source_lang}/TestCases/"+ files[i].split(".")[0]+"_out.txt", "r").read()
 
-                subprocess.run(f'rustc {translation_dir}/{files[i]}', check=True, capture_output=True, shell=True, timeout=5)
+                subprocess.run(f'rustc {translation_dir}/{files[i]}', check=True, capture_output=True, shell=True, timeout=10)
                 p = Popen(['./ ' + bin_name], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=10)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append(files[i])
                     continue

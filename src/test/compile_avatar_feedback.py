@@ -33,7 +33,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -50,7 +50,7 @@ def main(args):
                     p = Popen(['python3', translation_dir+"/"+ files[i]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -100,7 +100,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -117,7 +117,7 @@ def main(args):
                     p = Popen(['java', files[i].split(".")[0]], cwd=translation_dir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -189,7 +189,7 @@ def main(args):
                     p = Popen(['./a.out'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -256,7 +256,7 @@ def main(args):
                     p = Popen(['./exec_output'], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break
@@ -306,7 +306,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=10)
                 
                 tests_passed = 0
                 for j in range(1000):
@@ -323,7 +323,7 @@ def main(args):
                     p = Popen(["./"+files[i].split(".")[0]], cwd=os.getcwd(), stdin=PIPE, stdout=PIPE, stderr=PIPE)    
 
                     try:
-                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                        stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
                         break

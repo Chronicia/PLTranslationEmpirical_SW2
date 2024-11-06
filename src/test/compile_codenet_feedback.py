@@ -40,7 +40,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=30)
+                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
                 with open(test_dir+"/"+ files[i].split(".")[0]+"_in.txt" , 'r') as f:
                     f_in = f.read()
                 f_out = open(test_dir+"/"+ files[i].split(".")[0]+"_out.txt", "r").read()
@@ -48,7 +48,7 @@ def main(args):
                 p = Popen(['python3', translation_dir+"/"+ files[i]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)    
 
                 try:
-                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=100)
+                    stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                 except subprocess.TimeoutExpired:
                     infinite_loop.append((files[i], "the program enters an infinite loop"))
                     continue
