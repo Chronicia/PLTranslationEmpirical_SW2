@@ -58,7 +58,7 @@ class Translate:
 
         response = "exceptional case"
         is_success = False
-        max_attempts = 5
+        max_attempts = 10
         while max_attempts > 0:
             try:
                 response = client.chat.completions.create(
@@ -95,8 +95,12 @@ class Translate:
         return response.choices[0].message.content
 
     def translate_with_OPENAI(self, source, code_as_str, to):
-        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
-
+        system_prompt = """You are a code translator, capable of converting code from one programming language to another while preserving the functionality, structure, and efficiency of the original. 
+The user will provide you with code in a specific programming language, and your task is to accurately translate it into the desired target language. Ensure the translated code follows the conventions and best practices of the target language, and keep comments or explanations intact where necessary.
+No need to provide any extra explanation.
+"""
+        prompt = f"{code_as_str}. \n\n Translate the code from {source} to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
+        content = prompt
         message = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": content}]
