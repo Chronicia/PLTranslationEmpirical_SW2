@@ -102,7 +102,7 @@ class Translate:
             {"role": "user", "content": content}]
         # logging.info("translate_with_OPENAI: sending message to openai")
         response = self.send_message_to_openai(message)
-        return response.replace(f"```{to.lower()}", "").replace("```", "")
+        return response.replace(f"```{'cpp' if to.lower() == 'c++' else to.lower()}", "").replace("```", "")
 
     def translate(self, source, target):
         logging.info("translate: starting translation")
