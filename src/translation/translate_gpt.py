@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import re
 import argparse
 from tqdm import tqdm
+import openai
 
 os.makedirs(f'logs', exist_ok=True)
 logging.basicConfig(filename=f"logs/translation.log", level=logging.INFO, format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -77,7 +78,7 @@ class Translate:
             # except:
             #     max_attempts -= 1
             #     continue
-            except client.OpenAIError as e:
+            except openai.OpenAIError as e:
                 # Handle all OpenAI API errors
                 print(f"Error: {e}")
                 max_attempts -= 1
