@@ -95,10 +95,10 @@ class Translate:
         return response.choices[0].message.content
 
     def translate_with_OPENAI(self, source, code_as_str, to):
-        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
+        content = code_as_str + f"\n# Translate the code from {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
 
         message = [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are a code translator, capable of converting code from one programming language to another while preserving the functionality, structure, and efficiency of the original. The user will provide you with code in a specific programming language, and your task is to accurately translate it into the desired target language. Ensure the translated code follows the conventions and best practices of the target language, and keep comments or explanations intact where necessary. You should always preserve the logic and implementation of the code even the comment does not align with the code. DO NOT MODIFY THE LOGIC OF THE CODE. No need to provide any extra explanation."},
             {"role": "user", "content": content}]
         # logging.info("translate_with_OPENAI: sending message to openai")
         response = self.send_message_to_openai(message)

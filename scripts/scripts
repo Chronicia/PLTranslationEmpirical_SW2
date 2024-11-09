@@ -1,0 +1,23 @@
+# bash scripts/translate.sh gpt-4o-mini avatar Java C++ 50 0.95 0.7 0
+# bash scripts/test_avatar.sh Java C++ gpt-4o-mini fix_reports 1
+
+# bash scripts/translate.sh gpt-4o-mini avatar Python C++ 50 0.95 0.7 0
+# bash scripts/test_avatar.sh Python C++ gpt-4o-mini fix_reports 1
+
+# bash scripts/translate.sh gpt-4o-mini avatar Java Python 50 0.95 0.7 0
+# bash scripts/test_avatar.sh Java Python gpt-4o-mini fix_reports 1
+
+bash scripts/translate.sh gpt-4o-mini avatar Python Java 50 0.95 0.7 0
+bash scripts/test_avatar.sh Python Java gpt-4o-mini fix_reports 1
+
+bash scripts/translate.sh gpt-4o-mini avatar Java Go 50 0.95 0.7 0
+bash scripts/test_avatar.sh Java Go gpt-4o-mini fix_reports 1
+
+bash scripts/translate.sh gpt-4o-mini avatar Python Go 50 0.95 0.7 0
+bash scripts/test_avatar.sh Python Go gpt-4o-mini fix_reports 1
+
+"role": "system", "content": "You are a code translator, capable of converting code from one programming language to another while preserving the functionality, structure, and efficiency of the original. The user will provide you with code in a specific programming language, and your task is to accurately translate it into the desired target language. Ensure the translated code follows the conventions and best practices of the target language, and keep comments or explanations intact where necessary. You should always preserve the logic and implementation of the code even the comment does not align with the code. DO NOT MODIFY THE LOGIC OF THE CODE. No need to provide any extra explanation."
+content = code_as_str + f"\n# Translate the code from {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
+
+"role": "system", "content": "You are a helpful assistant."
+content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
