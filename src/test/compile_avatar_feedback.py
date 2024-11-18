@@ -377,13 +377,13 @@ def main(args):
 
     attempt = args.attempt
 
-    json_fp = folder_path.joinpath(f"{args.model}_codenet_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.json")
+    json_fp = folder_path.joinpath(f"{args.model}_avatar_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.json")
     with open(json_fp, "w", encoding="utf-8") as report:
         error_files = {'compile': compile_failed, 'runtime': runtime_failed + infinite_loop, 'incorrect': test_failed}
         json.dump(error_files, report)
         report.close()
 
-    txt_fp = folder_path.joinpath(f"{timestamp}_{args.model}_codenet_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.txt")
+    txt_fp = folder_path.joinpath(f"{timestamp}_{args.model}_avatar_errors_from_{args.source_lang}_to_{args.target_lang}_{attempt}.txt")
     report = open(txt_fp, 'w')
     for i in range(len(ordered_files)):
         if ordered_files[i] in [x[0] for x in compile_failed]:

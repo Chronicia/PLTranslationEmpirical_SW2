@@ -37,7 +37,7 @@ TEMPERATURE=$7;
 GPU_ID=$8;
 
 if [[ $MODEL == "gpt-4o-mini" || $MODEL == "gpt-4o" || $MODEL == "gpt-4" ]]; then
-  python3 src/translation/translate_gpt.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
+  python3 src/translation/translate_gpt_python_go.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
 elif [[ $MODEL == "StarCoder" || $MODEL == "CodeGen" || $MODEL == "CodeGeeX" || $MODEL == "LLaMa" || $MODEL == "TB-Airoboros" || $MODEL == "TB-Vicuna" ]]; then
   python3 src/translation/translate_open_source.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --gpu_id $GPU_ID;
 else
