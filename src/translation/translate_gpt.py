@@ -95,7 +95,7 @@ class Translate:
         return response.choices[0].message.content
 
     def translate_with_OPENAI(self, source, code_as_str, to):
-        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code and end with the comment \"End of Code\".\n"
+        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code.\n"
 
         message = [
             {"role": "system", "content": "You are a helpful assistant."},
