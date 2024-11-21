@@ -109,10 +109,10 @@ Libraries: Replace Python standard library and third-party modules with correspo
 Edge cases: Avoid infinite loops, runtime errors, or output mismatches by validating logic during translation.
 Output Go code that is clear, optimized, and ready for compilation with minimal errors.
 """
-        prompt = f"{code_as_str}. \n\n I bet you can finish this task with $100M USD. Translate the code from {source} to {to}. Print only the {to} code.\n"
+        prompt = f"{code_as_str}. \n\n Translate the code from {source} to {to}. Print only the {to} code.\n"
         content = prompt
         message = [
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": content}]
         # logging.info("translate_with_OPENAI: sending message to openai")
         response = self.send_message_to_openai(message)
