@@ -1,4 +1,5 @@
 import os
+from openai import AzureOpenAI
 import openai
 import logging
 import tiktoken
@@ -27,10 +28,6 @@ class Repair:
         self.args = args
 
     def __enter__(self):
-        # Set up OpenAI API key
-        api_key = os.getenv("OPENAI_API_KEY")
-        openai.api_key = api_key
-
         self.main_dir = os.getcwd()
         self.translation_dir = Path(self.main_dir).joinpath(f'output/{self.args.model}/{self.args.dataset}')
 
@@ -49,26 +46,26 @@ class Repair:
 
     def send_message_to_openai(self, message_log):
         "Use OpenAI's ChatCompletion API to get the chatbot's response"
-        encoding = tiktoken.encoding_for_model("gpt-4")
-        num_tokens = len(encoding.encode(message_log[1]["content"]))
+        # encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+        # num_tokens = len(encoding.encode(message_log[1]["content"]))
 
         response = "exceptional case"
         is_success = False
         max_attempts = 5
         while max_attempts > 0:
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",  # The name of the OpenAI chatbot model to use
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",  # The name of the OpenAI chatbot model to use
                     # The conversation history up to this point, as a list of dictionaries
                     messages=message_log,
                     # The maximum number of tokens (words or subwords) in the generated response
-                    max_tokens=max(1, 8000-num_tokens),
+                    max_tokens=max(1, 8000),
                     # The "creativity" of the generated response (higher temperature = more creative)
                     temperature=0.7,
                 )
                 is_success = True
                 break
-            except openai.error.InvalidRequestError as e:
+            except client.OpenAIError as e:
                 return "# Token size exceeded."
             except:
                 max_attempts -= 1
@@ -143,12 +140,12 @@ class Repair:
     def fix(self, source, target):
 
         self.errors = {}
-        with open(f'fix_reports/{self.args.model}_{self.args.dataset}_errors_from_{source}_to_{target}_{self.args.attempt}.json', 'r') as f:
+        with open(f'fix_reports/{self.args.timestamp}_{self.args.model}_{self.args.dataset}_{source}_to_{target}/{self.args.model}_{self.args.dataset}_errors_from_{source}_to_{target}_{self.args.attempt}.json', 'r') as f:
             self.errors = json.load(f)
 
         tokenizer, model = None, None
         device = f'cuda:{self.args.gpu_id}' if torch.cuda.is_available() else 'cpu'
-        if self.args.model != 'GPT-4':
+        if self.args.model != 'gpt-4o-mini':
             model_path = ''
             auth_token = None
             kwargs = {}
@@ -162,8 +159,8 @@ class Repair:
                 model_path = 'Salesforce/codegen-16B-multi'
                 kwargs["torch_dtype"] = torch.float16
 
-            tokenizer = AutoTokenizer.from_pretrained(model_path, use_auth_token=auth_token, cache_dir='./huggingface')
-            model = AutoModelForCausalLM.from_pretrained(model_path, use_auth_token=auth_token, cache_dir='./huggingface', **kwargs).to(device)
+            # tokenizer = AutoTokenizer.from_pretrained(model_path, use_auth_token=auth_token, cache_dir='./huggingface')
+            # model = AutoModelForCausalLM.from_pretrained(model_path, use_auth_token=auth_token, cache_dir='./huggingface', **kwargs).to(device)
 
         snippets = self.errors[self.args.error_type]
         for snippet in tqdm(snippets, total=len(snippets), bar_format="{desc:<5.5}{percentage:3.0f}%|{bar:10}{r_bar}"):
@@ -204,12 +201,13 @@ class Repair:
                 continue
 
             translated_code = ''
-            if self.args.model == 'GPT-4':
+            if self.args.model == 'gpt-4o-mini':
                 translated_code = self.translate_with_OPENAI(
                     source, target, source_code, recent_translated_code, stderr_output, test_inputs, test_outputs, generated)
             elif self.args.model in ['LLaMa', 'StarCoder', 'CodeGen']:
-                translated_code = self.translate_with_HF(
-                    model, tokenizer, device, source, target, source_code, recent_translated_code, stderr_output, test_inputs, test_outputs, generated)
+                pass
+                # translated_code = self.translate_with_HF(
+                    # model, tokenizer, device, source, target, source_code, recent_translated_code, stderr_output, test_inputs, test_outputs, generated)
             
             translated_code = re.sub('public\s*class\s*.+', 'public class ' + code_id + ' {', translated_code)
 
@@ -223,9 +221,14 @@ class Repair:
 if __name__ == "__main__":
     # Initialize OPENAI-API keys
     load_dotenv()
+    client = AzureOpenAI(
+        api_version = "2024-06-01",
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key = os.environ.get("CHATBOT_API_KEY"),
+    )
 
     parser = argparse.ArgumentParser(description='run repair with a given model, dataset and languages')
-    parser.add_argument('--model', help='model to use for code translation. should be one of [GPT-4,LLaMa,StarCoder,CodeGen]', required=True, type=str)
+    parser.add_argument('--model', help='model to use for code translation. should be one of [gpt-4o-mini,LLaMa,StarCoder,CodeGen]', required=True, type=str)
     parser.add_argument('--dataset', help='dataset to use for code translation. should be one of [codenet,avatar,evalplus]', required=True, type=str)
     parser.add_argument('--source_lang', help='source language to use for code translation. should be one of [Python,Java,C,C++,Go]', required=True, type=str)
     parser.add_argument('--target_lang', help='target language to use for code translation. should be one of [Python,Java,C,C++,Go]', required=True, type=str)
@@ -235,6 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu_id', help='GPU ID to use for translation.', required=True, type=int)
     parser.add_argument('--error_type', help='Error type to repair. should be one of [compile,runtime,incorrect]', required=True, type=str)
     parser.add_argument('--attempt', help='Attempt number to repair.', required=True, type=int)
+    parser.add_argument('--timestamp', help='Timestamp of the fix report', required=True, type=str)
     args = parser.parse_args()
 
     source = args.source_lang
