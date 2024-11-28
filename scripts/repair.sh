@@ -15,6 +15,7 @@ function prompt() {
     echo "GPU_ID: GPU to use";
     echo "ATTEMPT: attempt number";
     echo "ERROR_TYPE: type of error to repair. must be one of: 'compile', 'runtime', 'incorrect'";
+    echo "TIMESTAMP: Timestamp of the fix report";
     exit;
 }
 
@@ -39,9 +40,11 @@ TEMPERATURE=$7;
 GPU_ID=$8;
 ATTEMPT=$9;
 ERROR_TYPE=${10};
+TIMESTAMP=${11};
+TIME
 
 if [[ $MODEL == "gpt-4" || $MODEL == "gpt-4o" || $MODEL == "gpt-4o-mini" || $MODEL == "StarCoder" || $MODEL == "CodeGen" || $MODEL == "CodeGeeX" || $MODEL == "LLaMa" || $MODEL == "TB-Airoboros" || $MODEL == "TB-Vicuna" ]]; then
-  python3 src/translation/repair.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --gpu_id $GPU_ID --attempt $ATTEMPT --error_type $ERROR_TYPE;
+  python3 src/translation/repair.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --gpu_id $GPU_ID --attempt $ATTEMPT --error_type $ERROR_TYPE --timestamp $TIMESTAMP;
 else
   echo "Model not supported";
 fi
