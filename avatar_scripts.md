@@ -42,8 +42,8 @@ bash scripts/test_avatar.sh Python C gpt-4o-mini fix_reports 1
 
 Repairing Unsuccessful Translations
 ```bash
-bash scripts/repair.sh gpt-4o-mini avatar Java C++ 50 0.95 0.7 0 1 compile {timestamp of the fix report}
-bash scripts/repair.sh gpt-4o-mini avatar Java Go 50 0.95 0.7 0 1 compile {timestamp of the fix report}
-bash scripts/repair.sh gpt-4o-mini avatar Java C 50 0.95 0.7 0 1 compile {timestamp of the fix report}
-bash scripts/repair.sh gpt-4o-mini avatar Java Python 50 0.95 0.7 0 1 compile {timestamp of the fix report}
+bash scripts/repair.sh gpt-4o-mini avatar Python C++ 50 0.95 0.7 0 1 compile {timestamp of the fix report}
+bash scripts/repair.sh gpt-4o-mini avatar Python Go 50 0.95 0.7 0 1 compile {timestamp of the fix report}
+bash scripts/repair.sh gpt-4o-mini avatar Python Java 50 0.95 0.7 0 1 compile {timestamp of the fix report}
+bash scripts/repair.sh gpt-4o-mini avatar Python C 50 0.95 0.7 0 1 compile {timestamp of the fix report}
 ```
