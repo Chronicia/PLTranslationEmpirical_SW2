@@ -28,7 +28,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
+                subprocess.run("python3 -m py_compile "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=15)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -91,7 +91,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
+                subprocess.run("javac "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=15)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -159,7 +159,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("gcc "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=10)
+                subprocess.run("gcc "+translation_dir+"/"+ files[i], check=True, capture_output=True, shell=True, timeout=15)
 
                 tests_passed = 0
                 for j in range(1000):
@@ -222,7 +222,7 @@ def main(args):
 
             try:
                 print('Filename: ', files[i])
-                subprocess.run("g++ -o exec_output -std=c++11 " + translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=10)
+                subprocess.run("g++ -o exec_output -std=c++11 " + translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=15)
                 
                 tests_passed = 0
                 for j in range(1000):
@@ -285,7 +285,7 @@ def main(args):
             
             try:
                 print('Filename: ', files[i])
-                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=10)
+                subprocess.run("go build "+ translation_dir + "/" + files[i], check=True, capture_output=True, shell=True, timeout=15)
                 
                 tests_passed = 0
                 for j in range(1000):
