@@ -7,10 +7,12 @@ from dotenv import load_dotenv
 import re
 import argparse
 from tqdm import tqdm
+from translator.translator import Translator
 
 os.makedirs(f'logs', exist_ok=True)
 logging.basicConfig(filename=f"logs/translation.log", level=logging.INFO, format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
+my_translator = Translator()
 class Translate:
     EXTENSTIONS = {
         "Java": "java",
@@ -95,13 +97,14 @@ class Translate:
         return response.choices[0].message.content
 
     def translate_with_OPENAI(self, source, code_as_str, to):
-        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code.\n"
-
-        message = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": content}]
-        # logging.info("translate_with_OPENAI: sending message to openai")
-        response = self.send_message_to_openai(message)
+        # content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code.\n"
+        #
+        # message = [
+        #     {"role": "system", "content": "You are a helpful assistant."},
+        #     {"role": "user", "content": content}]
+        # # logging.info("translate_with_OPENAI: sending message to openai")
+        # response = self.send_message_to_openai(message)
+        response = my_translator.translate(source, to, code_as_str)
         return response.replace(f"```{'cpp' if to.lower() == 'c++' else to.lower()}", "").replace("```", "")
 
     def translate(self, source, target):
