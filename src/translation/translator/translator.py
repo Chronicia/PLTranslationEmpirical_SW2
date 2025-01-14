@@ -1,9 +1,14 @@
+from lib2to3.fixes.fix_input import context
+
 from openai import AzureOpenAI
+import openai
 import os
 from dotenv import load_dotenv
-import logging
 import tiktoken
-
+from src.translation.translator.utils import LOGGER
+logger = LOGGER("translator")
+logger.setLevel(LOGGER.INFO)
+logger.disable_stdout()
 # Load environment variables from .env file
 load_dotenv()
 
@@ -18,38 +23,46 @@ class Translator:
             azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"),
             api_key = os.environ.get("CHATBOT_API_KEY"),
         )
-        self.system_prompt = """You are a code translator, capable of converting code from one programming language to another while preserving the functionality, structure, and efficiency of the original. 
-The user will provide you with code in a specific programming language, and your task is to accurately translate it into the desired target language. Ensure the translated code follows the conventions and best practices of the target language, and keep comments or explanations intact where necessary.
-No need to provide any extra explanation
-"""
+        self.system_prompt = "You are a helpful assistant."
 
-
-    def translate(self, from_language, to_language, user_prompt, additional_instruction=None, default=True):
+    def translate(self, from_language, to_language, code, additional_instruction=None, default=True):
         "Use OpenAI's ChatCompletion API to get the chatbot's response"
         if default:
-            prompt = f"{user_prompt} \n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
+            logger.info("Default translation prompt is used")
+            context = self.get_context(from_language, code)
+            logger.info(f"Context: \n{context}")
+            prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}. \n\n For your reference, the intention of this code is {context}"
         else:
-            prompt = user_prompt
+            logger.info("Custom translation prompt is used")
+            prompt = code
+
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Code: {code}")
 
         encoding = tiktoken.get_encoding("cl100k_base")
         num_tokens = len(encoding.encode(prompt))
-        logging.info(f"num_tokens: {num_tokens}")
+        logger.info(f"num_tokens: {num_tokens}")
+
+        messages = [
+            {
+                "role": "system",
+                "content": self.system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+
+        logger.info(f"messages: {messages}")
 
         base_params = {
             "model": self.model_name,
-            "temperature": 0.7,
+            "temperature": 0.0,
             "frequency_penalty": 0.0,
             "presence_penalty": 0.0,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": self.system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+            "messages": messages,
         }
 
         response = "exceptional case"
@@ -60,20 +73,48 @@ No need to provide any extra explanation
                 response = self.client.chat.completions.create(**base_params)
                 is_success = True
                 break
-            except self.client.OpenAIError as e:
+            except openai.OpenAIError as e:
                 # Handle all OpenAI API errors
                 print(f"Error: {e}")
                 max_attempts -= 1
                 continue
         if not is_success:
+            logger.error("Error in performing translation")
             return response
 
         # Find the first response from the chatbot that has text in it (some responses may not have text)
         for choice in response.choices:
             if "text" in choice:
+                logger.info("Translated successfully")
                 return choice.text
-
+        logger.info("Translated successfully")
+        logger.info(f"Translated code: \n {response.choices[0].message.content}")
         return response.choices[0].message.content
+
+    def get_context(self, language, code):
+        system_prompt = f"You are an assistant to analyze programming code."
+        prompt = f"{code} \n\n Please analyze the following {language} code snippet.\n Identify the input, output of the code. Translate the code implementation into pseudocode. Finally, give a 100 words brief summary on the intention of the code."
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+        base_params = {
+            "model": self.model_name,
+            "temperature": 0.0,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
+            "messages": messages,
+        }
+
+        response = self.client.chat.completions.create(**base_params)
+        return response.choices[0].message.content
+
 
 if __name__ == "__main__":
     translator = Translator()
@@ -127,7 +168,8 @@ print("Sorted array:", arr)
     to_language = "Go"
     response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
 
-    code = response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```", "")
+    code = response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```",
+                                                                                                                "")
     os.makedirs("output", exist_ok=True)
     if to_language.lower() == "c":
         output_name = "translated_code.c"
