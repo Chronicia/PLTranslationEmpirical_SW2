@@ -29,9 +29,7 @@ class Translator:
         "Use OpenAI's ChatCompletion API to get the chatbot's response"
         if default:
             logger.info("Default translation prompt is used")
-            context = self.get_context(from_language, code)
-            logger.info(f"Context: \n{context}")
-            prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}. \n\n For your reference, the intention of this code is {context}"
+            prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
         else:
             logger.info("Custom translation prompt is used")
             prompt = code
@@ -90,31 +88,6 @@ class Translator:
         logger.info("Translated successfully")
         logger.info(f"Translated code: \n {response.choices[0].message.content}")
         return response.choices[0].message.content
-
-    def get_context(self, language, code):
-        system_prompt = f"You are an assistant to analyze programming code."
-        prompt = f"{code} \n\n Please analyze the following {language} code snippet.\n Identify the input, output of the code. Translate the code implementation into pseudocode. Finally, give a 100 words brief summary on the intention of the code."
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
-        base_params = {
-            "model": self.model_name,
-            "temperature": 0.0,
-            "frequency_penalty": 0.0,
-            "presence_penalty": 0.0,
-            "messages": messages,
-        }
-
-        response = self.client.chat.completions.create(**base_params)
-        return response.choices[0].message.content
-
 
 if __name__ == "__main__":
     translator = Translator()
