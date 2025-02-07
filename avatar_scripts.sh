@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-# Translation
+# Translation (fix0)
 bash scripts/translate.sh gpt-4o-mini avatar Java C++ 50 0.95 0.7 0
 bash scripts/translate.sh gpt-4o-mini avatar Java Go 50 0.95 0.7 0
 bash scripts/translate.sh gpt-4o-mini avatar Java C 50 0.95 0.7 0
 bash scripts/translate.sh gpt-4o-mini avatar Java Python 50 0.95 0.7 0
 
-# Generate Report
+# Generate Report (fix0)
 bash scripts/test_avatar.sh Java C++ gpt-4o-mini fix_reports 1
 bash scripts/test_avatar.sh Java Go gpt-4o-mini fix_reports 1
 bash scripts/test_avatar.sh Java C gpt-4o-mini fix_reports 1

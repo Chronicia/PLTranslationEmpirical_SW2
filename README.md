@@ -10,32 +10,20 @@
 - [x] Migrate [translations.py](http://translations.py) to openai-api 1.0+
 - [x] Make translation output with Azure GPT-4o-mini
 - [ ] Benchmark accuracy of output codes
-- [ ] (optional) Find other accessible LLMs, then make translation output with them
-
 
 ### Install
+Download conda (miniconda/condaforge). Afterwards run this:
 ```
 git clone https://github.com/Intelligent-CAT-Lab/PLTranslationEmpirical
-```
-(If needed) Download `conda 23.11.0` from this [link](https://docs.conda.io/projects/miniconda/en/latest/miniconda-other-installer-links.html). Then create virtual env and activate it:
-```
 conda create -n plempirical python=3.10.13
 conda activate plempirical
-```
-
-Checky python3 and pip version:
-```
 python3 --version && pip3 --version
+pip3 install -r requirements.txt
 ```
 Download both `dataset.zip` and `artifacts.zip` from [Zenodo](https://zenodo.org/doi/10.5281/zenodo.8190051) repository
 
 ### Dependencies
-**Software dependencies**: in requirements.txt
-```
-pip3 install -r requirements.txt
-```
-
-Not included, but needed to run code: Python 3.10, g++ 11, GCC Clang 14.0, Java 11, Go 1.20, Rust 1.73, and .Net 7.0.14 for Python, C++, C, Java, Go, Rust, and C#.
+**Software dependencies**: (1) in requirements.txt, (2) compilers for PLs: g++ 11, GCC Clang 14.0, Java 11, Go 1.20, Rust 1.73, and .Net 7.0.14 for Python, C++, C, Java, Go, Rust, and C#.
 
 **Hardware dependencies**: 16 NVIDIA A100 GPUs, 80GBs memory each for inferencing models. Memory need to be enough so that all model weights can be loaded into memory.
 
@@ -54,7 +42,7 @@ Not included, but needed to run code: Python 3.10, g++ 11, GCC Clang 14.0, Java 
 ```
 
 ### Dataset
-Inside `dataset.zip`, organized as follow:
+`dataset.zip` includes:
 
 1. [CodeNet](https://github.com/IBM/Project_CodeNet)
 2. [AVATAR](https://github.com/wasiahmad/AVATAR)
@@ -62,8 +50,7 @@ Inside `dataset.zip`, organized as follow:
 4. [Apache Commons-CLI](https://github.com/apache/commons-cli)
 5. [Click](https://github.com/pallets/click)
 
-Directory structure:
-
+dataset directory structure:
 ```
 PLTranslationEmpirical
 ├── dataset
@@ -76,7 +63,7 @@ PLTranslationEmpirical
 
 The structure of each dataset is as follows:
 
-1. CodeNet & Avatar: /source-language/`Code`, `TestCases`. Each code snippet has an `id` in the filename, which is the same in both `Code` and `TestCases`.
+1. CodeNet & Avatar: `/SRC_LANG/Code, TestCases`. Each code snippet has an `id` in the filename, which is the same in both `Code` and `TestCases`.
 
 2. Evalplus: The source language code snippets follow a similar structure as CodeNet and Avatar. However, as a one time effort, we manually created the test cases in the target Java language inside a maven project, `evalplus_java`. To evaluate the translations from an LLM, we recommend moving the generated Java code snippets to the `src/main/java` directory of the maven project and then running the command `mvn clean test surefire-report:report -Dmaven.test.failure.ignore=true` to compile, test, and generate reports for the translations.
 
@@ -92,14 +79,29 @@ LLAMA2_AUTH_TOKEN=<your llama2 auth token from huggingface>
 STARCODER_AUTH_TOKEN=<your starcoder auth token from huggingface>
 ```
 
-1. Translation with gpt-4o/gpt-4o-mini: 
+#### 1. Hyperparameters
+Here are the default parameter values, which yield the result we get. For reproducibility, please stick to the default values. For experimentation, feel free to alter the values as you see fit. 
 
-Example: Translate `Python -> Java`, dataset `codenet`, model `gpt-4o-mini`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.7`. Run the command:
+- `$DATASET`= {avatar, codenet, evalplus, real-life-cli}
+- `$MODEL`= {gpt-4o-mini, gpt-4o, gpt-4, gemini-1.5-pro-001, gemini-1.5-flash-001, gemini-1.5-pro-002, 
+ StarCoder, CodeGen}
+- `$SRC_LANG`, `$TRG_LANG`= {C, C++, Go, Java, Python} (if `$DATASET` = codenet), {Java, Python} (`$DATASET` = {avatar, evalplus, real-life-cli}), {Rust} (`$MODEL`=C2Rust), {C#} (`$MODEL`=Java2C#)
+- `$K`=50 (top-k sampling)
+- `$P`=0.95 (top-p sampling)
+- `$TEMP`=0.7
+- `$GPU_ID`=0
+
+
+#### 2. Translation (Refer to `scripts\translate.sh`)
+
+2.1. `$MODEL` = {gpt-4o, gpt-4o-mini, gemini-1.5-pro-001, gemini-1.5-flash-001, gemini-1.5-pro-002}
 ```
-bash scripts/translate.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0
+bash scripts/translate.sh $MODEL $DATASET $SRC_LANG $TRG_LANG $K $P $TEMP=0.7 $GPU_ID
 ```
 
-2. Translation with CodeGeeX: Need to clone CodeGeeX repository from https://github.com/THUDM/CodeGeeX and use the instructions from their artifacts to download their model weights. After cloning it inside `PLTranslationEmpirical` and downloading the model weights, your directory structure should be like the following:
+2.2. `$MODEL` = {CodeGeeX}
+
+Clone CodeGeeX repository: https://github.com/THUDM/CodeGeeX , use instructions from their artifacts to download model weights. After cloning it inside `PLTranslationEmpirical` and downloading the model weights, your directory structure should be like the following:
 
 ```
 PLTranslationEmpirical
@@ -114,20 +116,19 @@ PLTranslationEmpirical
     ├── ...
 ├── ...
 ```
-
-Translate `Python -> Java`, dataset `codenet`, model `CodeGeeX`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.2`, on GPU `gpu_id=0`:
+Script:
 ```
-bash scripts/translate.sh CodeGeeX codenet Python Java 50 0.95 0.2 0
-```
-
-3. All other models (StarCoder, CodeGen, LLaMa, TB-Airoboros, TB-Vicuna)
-
-Translate `Python -> Java`, dataset `codenet`, model: `StarCoder|CodeGen|LLaMa|TB-Airoboros|TB-Vicuna`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.2`, on GPU `gpu_id=0`:
-```
-bash scripts/translate.sh StarCoder codenet Python Java 50 0.95 0.2 0
+bash scripts/translate.sh CodeGeeX $DATASET $SRC_LANG $TRG_LANG $K $P $TEMP=0.2 $GPU_ID
 ```
 
-4. For translating and testing pairs with traditional techniques (i.e., C2Rust, CxGO, Java2C#), you can run the following commands:
+2.3. `$MODEL` = {StarCoder, CodeGen, and others}.
+
+Translate `Python -> Java`, dataset `codenet`, top-k sampling `k=50`, top-p sampling `p=0.95`, `temperature=0.2`, on GPU `gpu_id=0`:
+```
+bash scripts/translate.sh $MODEL $DATASET $SRC_LANG $TRG_LANG $K $P $TEMP=0.2 $GPU_ID
+```
+
+2.4. Traditional techniques (i.e., C2Rust, CxGO, Java2C#):
 ```
 bash scripts/translate_transpiler.sh codenet C Rust c2rust fix_report
 bash scripts/translate_transpiler.sh codenet C Go cxgo fix_reports
@@ -135,26 +136,29 @@ bash scripts/translate_transpiler.sh codenet Java C# java2c# fix_reports
 bash scripts/translate_transpiler.sh avatar Java C# java2c# fix_reports
 ```
 
-5. For compile and testing of CodeNet, AVATAR, and Evalplus (Python to Java) translations from gpt-4o-mini, and generating fix reports, you can run the following commands:
+#### 3. Compile, test, generate fix reports  (Refer to `scripts/test_$DATASET.sh`)
+`$DATASET` = {codenet, avatar, evalplus}. 
+
+`$ATTEMPT`: Does not really matter if you keep track of `$TIMESTAMP` in `fix_reports/`. Can choose `$ATTEMPT`=0 by default.
 ```
-bash scripts/test_avatar.sh Python Java gpt-4o-mini fix_reports 1
-bash scripts/test_codenet.sh Python Java gpt-4o-mini fix_reports 1
-bash scripts/test_evalplus.sh Python Java gpt-4o-mini fix_reports 1
+bash scripts/test_avatar.sh $SRC_LANG $TRG_LANG $MODEL $OUTPUT_DIR=fix_reports $ATTEMPT
+bash scripts/test_codenet.sh $SRC_LANG $TRG_LANG $MODEL $OUTPUT_DIR=fix_reports $ATTEMPT
+bash scripts/test_evalplus.sh $SRC_LANG $TRG_LANG $MODEL $OUTPUT_DIR=fix_reports $ATTEMPT
 ```
 
-6. For repairing unsuccessful translations of `Python` to `Java` in `CodeNet` dataset with `gpt-4o-mini`, you can run the following commands:
+#### 4. Repair (Refer to `scripts/repair.sh`)
+`$ERROR_TYPE`= {compile, runtime, incorrect}. Check `fix_reports/` to fill in `$TIMESTAMP` and `$ATTEMPT`, since the data needed for repair procedure (error types, error files) lies within the fix reports.
 ```
-bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 compile
-bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 runtime
-bash scripts/repair.sh gpt-4o-mini codenet Python Java 50 0.95 0.7 0 1 incorrect
-```
-
-7. For cleaning translations of open-source LLMs (i.e., StarCoder) in codenet, you can run the following command:
-```
-bash scripts/clean_generations.sh StarCoder codenet
+bash scripts/repair.sh $MODEL $DATASET $SRC_LANG $TRG_LANG $K $P $TEMP $GPU_ID $ATTEMPT $ERROR_TYPE $TIMESTAMP
 ```
 
-Please note that for the above commands, you can change the dataset and model name to execute the same thing for other datasets and models. Moreover, you can refer to [`/prompts`](/prompts/README.md) for different vanilla and repair prompts used in our study.
+#### 5. Clean translations of open-source LLMs (i.e., StarCoder) 
+
+```
+bash scripts/clean_generations.sh $MODEL $DATASET
+```
+
+Refer to [`/prompts`](/prompts/README.md) for different vanilla and repair prompts used in our study.
 
 ### Artifacts
 Brief content:
