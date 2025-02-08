@@ -30,6 +30,10 @@ class Translator:
             "presence_penalty": 0.0,
             "messages": messages,
         }
+        encoding = tiktoken.get_encoding("cl100k_base")
+        num_tokens = len(encoding.encode(messages[1]["content"]))
+        logger.info(f"num_tokens: {num_tokens}")
+
         response = "exceptional case"
         is_success = False
         max_attempts = 5
