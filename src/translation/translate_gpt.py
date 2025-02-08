@@ -51,59 +51,7 @@ class Translate:
             self.out_dir.mkdir(parents=True)
 
         return self
-
-    def send_message_to_openai(self, message_log):
-        "Use OpenAI's ChatCompletion API to get the chatbot's response"
-        encoding = tiktoken.get_encoding("cl100k_base")
-        num_tokens = len(encoding.encode(message_log[1]["content"]))
-        logging.info(f"num_tokens: {num_tokens}")
-
-        response = "exceptional case"
-        is_success = False
-        max_attempts = 5
-        while max_attempts > 0:
-            try:
-                response = client.chat.completions.create(
-                    model=self.model,  # The name of the OpenAI chatbot model to use
-                    # The conversation history up to this point, as a list of dictionaries
-                    messages=message_log,
-                    # # The maximum number of tokens (words or subwords) in the generated response
-                    # max_tokens=max(1, 8000-num_tokens),
-                    # The "creativity" of the generated response (higher temperature = more creative)
-                    temperature=0.7,
-                )
-                is_success = True
-                break
-            # except openai.error.InvalidRequestError as e:
-            #     return "# Token size exceeded."
-            # except:
-            #     max_attempts -= 1
-            #     continue
-            except client.OpenAIError as e:
-                # Handle all OpenAI API errors
-                print(f"Error: {e}")
-                max_attempts -= 1
-                continue
-
-        if not is_success:
-            return response
-
-        # Find the first response from the chatbot that has text in it (some responses may not have text)
-        for choice in response.choices:
-            if "text" in choice:
-                return choice.text
-
-        # If no response with text is found, return the first response's content (which may be empty)
-        return response.choices[0].message.content
-
     def translate_with_OPENAI(self, source, code_as_str, to):
-        # content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code.\n"
-        #
-        # message = [
-        #     {"role": "system", "content": "You are a helpful assistant."},
-        #     {"role": "user", "content": content}]
-        # # logging.info("translate_with_OPENAI: sending message to openai")
-        # response = self.send_message_to_openai(message)
         response = my_translator.translate(source, to, code_as_str)
         return response.replace(f"```{'cpp' if to.lower() == 'c++' else to.lower()}", "").replace("```", "")
 

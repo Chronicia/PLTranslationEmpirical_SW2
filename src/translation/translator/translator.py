@@ -44,7 +44,7 @@ class Translator:
                 max_attempts -= 1
                 continue
         if not is_success:
-            logger.error("Error in performing translation")
+            logger.error("Error in getting response from OpenAI")
             return response
 
         return response.choices[0].message.content

@@ -18,12 +18,14 @@ from dotenv import load_dotenv
 import re
 import argparse
 from tqdm import tqdm
+from translator.gemini_translator import Translator
 
 os.makedirs(f'logs', exist_ok=True)
 logging.basicConfig(filename=f"logs/translation.log", level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
+my_translator = Translator()
 
 class Translate:
     EXTENSTIONS = {
@@ -35,29 +37,6 @@ class Translate:
         "Rust": "rs",
         "C#": "cs"
     }
-
-    generation_config = {
-        "max_output_tokens": 8192,
-        "temperature": 1.0,
-        "top_p": 0,
-    }
-
-    safety_settings = {
-        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    }
-    safety_config = [
-        SafetySetting(
-            category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        ),
-        SafetySetting(
-            category=HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        ),
-    ]
 
     def __init__(self, model, dataset) -> None:
         # Set up OpenAI API key
@@ -87,62 +66,8 @@ class Translate:
 
         return self
 
-    def send_message_to_openai(self, message_log):
-        "Use OpenAI's ChatCompletion API to get the chatbot's response"
-        # encoding = tiktoken.get_encoding("cl100k_base")
-        # num_tokens = len(encoding.encode(message_log[1]["content"]))
-        # logging.info(f"num_tokens: {num_tokens}")
-
-        response = "exceptional case"
-        is_success = False
-        max_attempts = 5
-        while max_attempts > 0:
-            try:
-
-                # Generate the response
-                llm = GenerativeModel(self.model)
-                response = llm.generate_content(
-                    message_log,
-                    generation_config=self.generation_config,
-                    safety_settings=self.safety_config
-                )
-                is_success = True
-                break
-            # except openai.error.InvalidRequestError as e:
-            #     return "# Token size exceeded."
-            # except:
-            #     max_attempts -= 1
-            #     continue
-            except Exception as e:
-                # Handle all OpenAI API errors
-                print(f"Error: {e}")
-                max_attempts -= 1
-                continue
-
-        if not is_success:
-            return response
-
-        # Find the first response from the chatbot that has text in it (some responses may not have text)
-        return response.text
-
-        # If no response with text is found, return the first response's content (which may be empty)
-        # return response.choices[0].message.content
-
-    def translate_with_OPENAI(self, source, code_as_str, to):
-        content = code_as_str + f"\n# Translate the above {source} code to {to}. Print only the {to} code.\n"
-
-        message = []
-        message.append(
-            Content(
-                parts=[
-                    Part.from_text(content)
-                ],
-                role="user"
-            )
-        )
-
-        # logging.info("translate_with_OPENAI: sending message to openai")
-        response = self.send_message_to_openai(message)
+    def translate_with_VERTEXAI(self, source, code_as_str, to):
+        response = my_translator.translate(source, to, code_as_str)
         return response.replace(f"```{'cpp' if to.lower() == 'c++' else to.lower()}", "").replace("```", "")
 
     def translate(self, source, target):
@@ -164,7 +89,7 @@ class Translate:
             # if translated_code_fp.exists():
             #     continue
 
-            translated_code = self.translate_with_OPENAI(source, code_as_str, target)
+            translated_code = self.translate_with_VERTEXAI(source, code_as_str, target)
             translated_code = re.sub('public\s*class\s*.+', 'public class ' + code_id + ' {', translated_code)
 
             if self.dataset == 'evalplus' and target == 'Java':
@@ -180,8 +105,8 @@ class Translate:
 if __name__ == "__main__":
     vertexai.init(project="civic-wall-437605-q4", location="asia-east2")
     parser = argparse.ArgumentParser(
-        description='run translation with OpenAI\'s GPT models given dataset and languages')
-    parser.add_argument('--model', help='model to use for code translation. should be one of [gpt-4o,gpt-4o-mini,...]',
+        description='run translation with Google\'s Generative models given dataset and languages')
+    parser.add_argument('--model', help='model to use for code translation. should be one of [gemini-1.5-pro-002,...]',
                         required=True, type=str)
     parser.add_argument('--dataset',
                         help='dataset to use for code translation. should be one of [codenet,avatar,evalplus]',
