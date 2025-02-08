@@ -1,5 +1,3 @@
-from lib2to3.fixes.fix_input import context
-
 from openai import AzureOpenAI
 import openai
 import os
@@ -11,7 +9,6 @@ logger.setLevel(LOGGER.INFO)
 logger.disable_stdout()
 # Load environment variables from .env file
 load_dotenv()
-
 
 class Translator:
     model_name = "gpt-4o-mini"
@@ -25,14 +22,36 @@ class Translator:
         )
         self.system_prompt = "You are a helpful assistant."
 
-    def translate(self, from_language, to_language, code, additional_instruction=None, default=True):
+    def get_response(self, messages):
+        base_params = {
+            "model": self.model_name,
+            "temperature": 0.0,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
+            "messages": messages,
+        }
+        response = "exceptional case"
+        is_success = False
+        max_attempts = 5
+        while max_attempts > 0:
+            try:
+                response = self.client.chat.completions.create(**base_params)
+                is_success = True
+                break
+            except openai.OpenAIError as e:
+                # Handle all OpenAI API errors
+                print(f"Error: {e}")
+                max_attempts -= 1
+                continue
+        if not is_success:
+            logger.error("Error in performing translation")
+            return response
+
+        return response.choices[0].message.content
+    def translate(self, from_language, to_language, code, additional_instruction=None):
         "Use OpenAI's ChatCompletion API to get the chatbot's response"
-        if default:
-            logger.info("Default translation prompt is used")
-            prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
-        else:
-            logger.info("Custom translation prompt is used")
-            prompt = code
+        logger.info("Default translation prompt is used")
+        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
 
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
@@ -55,39 +74,10 @@ class Translator:
 
         logger.info(f"messages: {messages}")
 
-        base_params = {
-            "model": self.model_name,
-            "temperature": 0.0,
-            "frequency_penalty": 0.0,
-            "presence_penalty": 0.0,
-            "messages": messages,
-        }
-
-        response = "exceptional case"
-        is_success = False
-        max_attempts = 5
-        while max_attempts > 0:
-            try:
-                response = self.client.chat.completions.create(**base_params)
-                is_success = True
-                break
-            except openai.OpenAIError as e:
-                # Handle all OpenAI API errors
-                print(f"Error: {e}")
-                max_attempts -= 1
-                continue
-        if not is_success:
-            logger.error("Error in performing translation")
-            return response
-
-        # Find the first response from the chatbot that has text in it (some responses may not have text)
-        for choice in response.choices:
-            if "text" in choice:
-                logger.info("Translated successfully")
-                return choice.text
+        response = self.get_response(messages)
         logger.info("Translated successfully")
-        logger.info(f"Translated code: \n {response.choices[0].message.content}")
-        return response.choices[0].message.content
+        logger.info(f"Translated code: \n {response}")
+        return response
 
 if __name__ == "__main__":
     translator = Translator()
