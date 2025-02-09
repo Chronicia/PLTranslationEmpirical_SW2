@@ -68,12 +68,30 @@ class Translator:
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
         logger.info(f"User's Input: {code}")
+        ## Default prompt
+        # prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
+
+        ## Ask the model to translate the code step by step
+        # prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}. \n\n Please translate the code step by step as shown below, ensuring clarity and correctness in the translation. \n 1. Translate the function definition. \n 2. Translate the parameters and arguments. \n 3. Translate the return statement. \n 4. Add comments explaining each key part of the translated code."
+
+        ## Let the model translate to Intermediate Representation, then translate to the target language
+        intermediate_representation = self.get_intermediate_representation(from_language, to_language , code)
+        logger.info(f"Intermediate representation: {intermediate_representation}")
+        prompt = intermediate_representation + f"\n\n Translate the code from intermediate representation to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}."
+
+        ## Let the model split the code and translate the code snippets first, then give them as reference
+        # code_snippets = self.get_code_snippets(from_language, to_language, code)
+        # logger.info(f"Code Snippets: \n{code_snippets}")
+        # prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \n You may follow the additional instruction: {additional_instruction}. You may follow the {to_language} code snippets for your reference."
+
+        ## Let model summarize the code first
         # context = self.get_context(from_language, code)
         # logger.info(f"Context: \n{context}")
 
-        response_raw = self.thinking(from_language, to_language, code, additional_instruction)
-        logger.info(f"Raw Response: \n{response_raw}")
-        prompt = response_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
+        ## Let model think
+        # response_raw = self.thinking(from_language, to_language, code, additional_instruction)
+        # logger.info(f"Raw Response: \n{response_raw}")
+        # prompt = response_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
 
         messages = [
             {
@@ -90,6 +108,38 @@ class Translator:
         response = self.send_message_to_openai(messages)
         logger.info(f"Response: \n{response}")
         return response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```","")
+
+    def get_intermediate_representation(self, from_language, to_language, code):
+        system_prompt = f"You are a code translation model. Your tasks are: \n 1. Translate {from_language} code into a structured intermediate representation (IR) that abstracts away language-specific syntax while retaining the essential semantics of the code. \n 2. The IR should clearly define function inputs, outputs, and logic, making it easier to translate to {to_language}. \n\n Ensure that: \n - The IR captures key constructs like function definitions, variables, and control flow. \n - The IR is concise and easy to understand. \n - Only include the IR when you output"
+        prompt = f"Translate the following {from_language} code into an intermediate representation (IR):" + code
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+        response = self.send_message_to_openai(messages)
+        return response
+
+    def get_code_snippets(self, from_language, to_language, code):
+        system_prompt = f"You are an expert in translating programming languages. First, split the following {from_language} code into snippets, then translate those snippets into {to_language}.\n\nCode:\n{code}"
+        prompt = f"Please provide only the translated code snippets."
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+        response = self.send_message_to_openai(messages)
+        return response
 
 
     def get_context(self, language, code):
