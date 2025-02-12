@@ -71,8 +71,8 @@ class Translator:
         # context = self.get_context(from_language, code)
         # logger.info(f"Context: \n{context}")
 
-        response_raw = self.thinking(from_language, to_language, code, additional_instruction)
-        logger.info(f"Raw Response: \n{response_raw}")
+        response_raw = self.thinking2(from_language, to_language, code, additional_instruction)
+        logger.info(f"Reasoning results: \n{response_raw}")
         result_raw = self.get_result(from_language, to_language, code, response_raw, additional_instruction)
         logger.info(f"Raw Response: \n{result_raw}")
         prompt = result_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
@@ -905,7 +905,7 @@ Here are some examples of GPT's thinking and responses in action:
         )
 
         logger.info("Thinking translation process.")
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
         prompt = (
             f"Create a step-by-step process that will perform the request given. \n"
             f"Request: {user_prompt} \n"
@@ -927,7 +927,7 @@ Here are some examples of GPT's thinking and responses in action:
         return response
 
     def get_result(self, from_language, to_language, code, reasoning, additional_instruction):
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code."
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
         logger.info("Generating final result.")
         system_prompt = (
             f"You are an advanced Al assistant engaging directly with a user. Your primary goal is to accurately and thoroughly address their request by meticulcusly following the specified process. Remember:\n\n"
