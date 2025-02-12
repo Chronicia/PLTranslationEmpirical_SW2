@@ -26,23 +26,24 @@ class Translator:
         self.system_prompt = "You are a helpful assistant."
 
     def send_message_to_openai(self, message_log):
+        base_params = {
+            "model": self.model_name,
+            "temperature": 0.0,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
+            "max_token": 16384,
+            "messages": message_log,
+        }
         encoding = tiktoken.get_encoding("cl100k_base")
         num_tokens = len(encoding.encode(message_log[1]["content"]))
         logger.info(f"num_tokens: {num_tokens}")
 
         response = "exceptional case"
         is_success = False
-        max_attempts = 5
+        max_attempts = 15
         while max_attempts > 0:
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model_name,  # The name of the OpenAI chatbot model to use
-                    messages=message_log,
-                    temperature=0.0,
-                    frequency_penalty=0.0,
-                    presence_penalty=0.0,
-                    max_tokens=16384,
-                )
+                response = self.client.chat.completions.create(**base_params)
                 is_success = True
                 break
             except openai.OpenAIError as e:
@@ -67,13 +68,15 @@ class Translator:
         logger.info("Default translation prompt is used")
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
-        logger.info(f"User's Input: {code}")
+        logger.info(f"User's Input: \n{code}")
         # context = self.get_context(from_language, code)
         # logger.info(f"Context: \n{context}")
 
         response_raw = self.thinking(from_language, to_language, code, additional_instruction)
         logger.info(f"Raw Response: \n{response_raw}")
-        prompt = response_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
+        result_raw = self.get_result(from_language, to_language, code, response_raw, additional_instruction)
+        logger.info(f"Raw Response: \n{result_raw}")
+        prompt = result_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
 
         messages = [
             {
@@ -875,8 +878,83 @@ Here are some examples of GPT's thinking and responses in action:
 """
 
         logger.info("Thinking translation process.")
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
+        prompt = (
+                f"Create a step-by-step process that will perform the request given. \n"
+                f"Request: {user_prompt} \n"
+                f"Process:"
+        )
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+        logger.info(f"messages: {messages}")
 
-        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
+        response = self.send_message_to_openai(messages)
+        return response
+
+    def thinking2(self, from_language, to_language, code, additional_instruction=None):
+        system_prompt = (
+            f""
+
+        logger.info("Thinking translation process.")
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
+        prompt = (
+            f"Create a step-by-step process that will perform the request given. \n"
+            f"Request: {user_prompt} \n"
+            f"Process:"
+        )
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+        logger.info(f"messages: {messages}")
+
+        response = self.send_message_to_openai(messages)
+        return response
+
+    def get_result(self, from_language, to_language, code, reasoning, additional_instruction):
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code."
+        logger.info("Generating final result.")
+        system_prompt = (
+            f"You are an advanced Al assistant engaging directly with a user. Your primary goal is to accurately and thoroughly address their request by meticulcusly following the specified process. Remember:\n\n"
+            f"Precision and accuracy are paramount. Take your time to ensure each step is executed correctly.\n"
+            f"Carefully analyze the user's request before proceeding.\n"
+            f"Follow the given process step-by-step, without skipping or altering any steps.\n"
+            f"If any step is unclear, seek clarification before proceeding\n"
+            f"Show your work and reasoning for each step when appropriate.\n"
+            f"Verify your sotution against the original request before finalizing your answer.\n"
+            f"If you encounter any limitations or potential issues, transparently communicate them to the user.\n"
+            f"Offer to elaborate or provide additional information if you think it would be beneficial.\n\n"
+            f"Your responses should be thorough yet concise, striking a balance between completeness and clarity."
+        )
+        prompt = (
+            f"To address the user's request, please follow this structured approach:\n\n"
+            f"Carefully read and analyze the user's request: {user_prompt}\n\n"
+            f"Process: Apply the following reasoning steps to formulate your response:\n"
+            f"{reasoning}\n\n"
+            f"Execution:\n"
+            f"a. Follow each step of the process methodically.\n"
+            f"b. Document your thought process and any intermediate results.\n"
+            f"c. If you encounter any ambiguities or need additional information, note them for later clarification.\n"
+            f"Review and Refine:\n"
+            f"a. Cross-check your solution against the original request to ensure all aspects have been addressed.\n"
+            f"b. Verify that you've followed all steps in the given process.\n"
+            f"c. Refine your answer for clarity and conciseness without sacrificing essential information.\n\n"
+            f"Final Result: Present your final, polished response here. Ensure it directly addresses the user's request and reflects the outcome of the given process."
+        )
         messages = [
             {
                 "role": "system",
