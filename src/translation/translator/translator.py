@@ -28,10 +28,9 @@ class Translator:
     def send_message_to_openai(self, message_log):
         base_params = {
             "model": self.model_name,
-            "temperature": 0.0,
+            "temperature": 0.7,
             "frequency_penalty": 0.0,
             "presence_penalty": 0.0,
-            "max_token": 16384,
             "messages": message_log,
         }
         encoding = tiktoken.get_encoding("cl100k_base")
