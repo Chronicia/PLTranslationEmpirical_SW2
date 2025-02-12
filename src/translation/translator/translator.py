@@ -901,7 +901,9 @@ Here are some examples of GPT's thinking and responses in action:
 
     def thinking2(self, from_language, to_language, code, additional_instruction=None):
         system_prompt = (
-            f""
+            f"You are not writing to the user. Instead you are thinking deeply about the problem to come up with a step-by-step process that will come to the correct solution.\n\n"
+            f"Your task is to create that process based on the request."
+        )
 
         logger.info("Thinking translation process.")
         user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
