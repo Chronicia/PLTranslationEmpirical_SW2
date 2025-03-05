@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 import tiktoken
 from src.translation.translator.utils import LOGGER
+import time
+
 logger = LOGGER("translator")
 logger.setLevel(LOGGER.INFO)
 logger.disable_stdout()
@@ -14,7 +16,6 @@ load_dotenv()
 
 
 class Translator:
-    model_name = "gpt-4o-mini"
     def __init__(self):
         if os.getenv("AZURE_OPENAI_ENDPOINT") is None or os.getenv("CHATBOT_API_KEY") is None:
             print("Please ensure the .env file is imported correctly.")
@@ -25,13 +26,14 @@ class Translator:
         )
         self.system_prompt = "You are a helpful assistant."
 
-    def send_message_to_openai(self, message_log):
+    def send_message_to_openai(self, message_log, model_name="gpt-4o-mini", temperature=0.8):
         base_params = {
-            "model": self.model_name,
-            "temperature": 0.7,
+            "model": model_name,
+            "temperature": temperature,
             "frequency_penalty": 0.0,
             "presence_penalty": 0.0,
             "messages": message_log,
+            "max_tokens": 16384,
         }
         encoding = tiktoken.get_encoding("cl100k_base")
         num_tokens = len(encoding.encode(message_log[1]["content"]))
@@ -39,7 +41,7 @@ class Translator:
 
         response = "exceptional case"
         is_success = False
-        max_attempts = 15
+        max_attempts = 100
         while max_attempts > 0:
             try:
                 response = self.client.chat.completions.create(**base_params)
@@ -49,6 +51,7 @@ class Translator:
                 # Handle all OpenAI API errors
                 print(f"Error: {e}")
                 max_attempts -= 1
+                time.sleep(2)  # Sleep for 2 seconds
                 continue
 
         if not is_success:
@@ -71,11 +74,12 @@ class Translator:
         # context = self.get_context(from_language, code)
         # logger.info(f"Context: \n{context}")
 
+        # Using thinking-V2 model
         response_raw = self.thinking2(from_language, to_language, code, additional_instruction)
         logger.info(f"Reasoning results: \n{response_raw}")
         result_raw = self.get_result(from_language, to_language, code, response_raw, additional_instruction)
         logger.info(f"Raw Response: \n{result_raw}")
-        prompt = result_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any content"
+        prompt = result_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any code."
 
         messages = [
             {
@@ -89,7 +93,7 @@ class Translator:
         ]
         logger.info(f"messages: {messages}")
 
-        response = self.send_message_to_openai(messages)
+        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.2)
         logger.info(f"Response: \n{response}")
         return response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```","")
 
@@ -900,14 +904,29 @@ Here are some examples of GPT's thinking and responses in action:
 
     def thinking2(self, from_language, to_language, code, additional_instruction=None):
         system_prompt = (
-            f"You are not writing to the user. Instead you are thinking deeply about the problem to come up with a step-by-step process that will come to the correct solution.\n\n"
-            f"Your task is to create that process based on the request."
+            f"You are a software engineer expert.\n"
+            f"You are not writing to the user directly. Instead you are thinking deeply about the code translation problem to come up with a step-by-step process that will come to the correct solution.\n"
+            f"For each line of code, you should consider the following:\n"
+            f"1. What's the purpose of the code'?\n"
+            f"2. What's the input and output of the code?\n"
+            f"3. How does the code achieve the desired outcome?\n"
+            f"4. What are the potential pitfalls or edge cases that need to be considered?\n"
+            f"5. How can the translated code be improved or optimized?\n"
+            f"6. Is the translated code weakly equivalent to the original code?\n"
+            f"7. Is the translated code function exactly the same as the original code?\n"
+            f"7. Is the input and output of the translated completely identical to the original code?\n\n"
+            f"Your Task:\n"
+            f"Think step-by-step about each line of code.\n"
+            f"Output detailed reasoning for every decision.\n"
+            f"Ensure the translated code is robust, idiomatic, and weakly equivalent.\n"
+            f"Ensure the I/O of the translated code is completely identical to the original code.\n\n"
+            f"Create that process based on the request."
         )
 
         logger.info("Thinking translation process.")
         user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
         prompt = (
-            f"Create a step-by-step process that will perform the request given. \n"
+            f"Create a step-by-step process that will perform the code translation task given. \n"
             f"Request: {user_prompt} \n"
             f"Process:"
         )
@@ -923,21 +942,18 @@ Here are some examples of GPT's thinking and responses in action:
         ]
         logger.info(f"messages: {messages}")
 
-        response = self.send_message_to_openai(messages)
+        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.8)
         return response
 
     def get_result(self, from_language, to_language, code, reasoning, additional_instruction):
         user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
         logger.info("Generating final result.")
         system_prompt = (
-            f"You are an advanced Al assistant engaging directly with a user. Your primary goal is to accurately and thoroughly address their request by meticulcusly following the specified process. Remember:\n\n"
-            f"Precision and accuracy are paramount. Take your time to ensure each step is executed correctly.\n"
-            f"Carefully analyze the user's request before proceeding.\n"
-            f"Follow the given process step-by-step, without skipping or altering any steps.\n"
-            f"If any step is unclear, seek clarification before proceeding\n"
-            f"Show your work and reasoning for each step when appropriate.\n"
-            f"Verify your sotution against the original request before finalizing your answer.\n"
-            f"If you encounter any limitations or potential issues, transparently communicate them to the user.\n"
+            f"ou are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
+            f"Precision and accuracy are paramount. Ensure the translated code is functionally equivalent to the original. Pay close attention to language-specific nuances (e.g., memory management, type systems, libraries).\n"
+            f"Follow the given process step-by-step, without skipping or altering any steps. Carefully analyze the original code and the target language requirement.\n"
+            f"Show your work and reasoning for each step, explaining how and why you translated specific constructs. Highlight any potential pitfalls or edge cases in the translation.\n"
+            f"Verify the translated code against the original to ensure strong equivalence (identical behavior for all inputs). Confirm that the translated code is idiomatic and optimized for the target language.\n"
             f"Offer to elaborate or provide additional information if you think it would be beneficial.\n\n"
             f"Your responses should be thorough yet concise, striking a balance between completeness and clarity."
         )
@@ -954,7 +970,11 @@ Here are some examples of GPT's thinking and responses in action:
             f"a. Cross-check your solution against the original request to ensure all aspects have been addressed.\n"
             f"b. Verify that you've followed all steps in the given process.\n"
             f"c. Refine your answer for clarity and conciseness without sacrificing essential information.\n\n"
-            f"Final Result: Present your final, polished response here. Ensure it directly addresses the user's request and reflects the outcome of the given process."
+            f"Output Format:\n"
+            f"Provide a clear, structured response with:\n"
+            f"Line-by-line analysis of the translation process. \n"
+            f"Final translated code.\n"
+            f"Equivalence check and verification."
         )
         messages = [
             {
@@ -968,14 +988,13 @@ Here are some examples of GPT's thinking and responses in action:
         ]
         logger.info(f"messages: {messages}")
 
-        response = self.send_message_to_openai(messages)
+        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.8)
         return response
 
 
 if __name__ == "__main__":
     translator = Translator()
-    user_prompt = """
-import java.io.PrintWriter ; import java.util.ArrayList ; import java.util.Arrays ; import java.util.Scanner ; public class atcoder_ABC135_D { public static void main ( String [ ] args ) { new atcoder_ABC135_D ( ).run ( ) ; } final long MOD = ( long ) 1e9 + 7 ; void run ( ) { Scanner sc = new Scanner ( System.in ) ; char [ ] cs = sc.next ( ).toCharArray ( ) ; long [ ] [ ] dp = new long [ cs.length ] [ 13 ] ; int base = 1 ; for ( int i = 0 ; i < cs.length ; ++ i ) { if ( cs [ cs.length - 1 - i ] == '?' ) { for ( int pre = 0 ; pre < 13 ; ++ pre ) { for ( int next = 0 ; next < 10 ; ++ next ) { dp [ i ] [ ( base * next + pre ) % 13 ] += ( i > 0 ? dp [ i - 1 ] [ pre ] : ( pre == 0 ? 1 : 0 ) ) ; dp [ i ] [ ( base * next + pre ) % 13 ] %= MOD ; } } } else { int next = cs [ cs.length - 1 - i ] - '0' ; for ( int pre = 0 ; pre < 13 ; ++ pre ) { dp [ i ] [ ( base * next + pre ) % 13 ] += ( i > 0 ? dp [ i - 1 ] [ pre ] : ( pre == 0 ? 1 : 0 ) ) ; dp [ i ] [ ( base * next + pre ) % 13 ] %= MOD ; } } base = base * 10 % 13 ; } System.out.println ( dp [ dp.length - 1 ] [ 5 ] ) ; } void tr ( Object...objects ) { System.out.println ( Arrays.deepToString ( objects ) ) ; } }
+    user_prompt = """import java.io.BufferedReader ; import java.io.InputStreamReader ; import java.util.Arrays ; public class atcoder_ABC150_E { public static void main ( String [ ] args ) throws Exception { BufferedReader br = new BufferedReader ( new InputStreamReader ( System.in ) ) ; String [ ] sa = br.readLine ( ).split ( " " ) ; int n = Integer.parseInt ( sa [ 0 ] ) ; sa = br.readLine ( ).split ( " " ) ; int [ ] c = new int [ n ] ; for ( int i = 0 ; i < n ; i ++ ) { c [ i ] = Integer.parseInt ( sa [ i ] ) ; } br.close ( ) ; int mod = 1000000007 ; if ( n == 1 ) { System.out.println ( c [ 0 ] * 2 % mod ) ; return ; } Arrays.parallelSort ( c ) ; long b = power ( 2 , n ) ; long a = power ( 2 , n - 2 ) ; long ans = 0 ; for ( int i = 2 ; i <= n + 1 ; i ++ ) { long val = a * i % mod ; val *= c [ n + 1 - i ] ; val %= mod ; ans += val ; ans %= mod ; } ans *= b ; ans %= mod ; System.out.println ( ans ) ; } static long power ( long x , long n ) { if ( n == 0 ) { return 1 ; } int mod = 1000000007 ; long val = power ( x , n / 2 ) ; val = val * val % mod ; if ( n % 2 == 1 ) { val = val * x % mod ; } return val ; } }
 """
     additional_instruction = ""
     from_language = "Java"
