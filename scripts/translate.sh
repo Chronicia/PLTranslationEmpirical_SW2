@@ -4,7 +4,7 @@ export PYTHONIOENCODING=utf-8;
 
 function prompt() {
     echo;
-    echo "Syntax: bash scripts/translate.sh MODEL DATASET SRC_LANG TRG_LANG K P TEMPERATURE GPU_ID";
+    echo "Syntax: bash scripts/translate.sh MODEL DATASET SRC_LANG TRG_LANG K P TEMPERATURE GPU_ID [MODE]";
     echo "MODEL: name of the model to use";
     echo "DATASET: name of the dataset to use";
     echo "SRC_LANG: source language";
@@ -13,6 +13,7 @@ function prompt() {
     echo "P: top-p sampling";
     echo "TEMPERATURE: temperature for sampling";
     echo "GPU_ID: GPU to use";
+    echo "MODE: (optional) mode for translation";
     exit;
 }
 
@@ -23,7 +24,8 @@ while getopts ":h" option; do
     esac
 done
 
-if [[ $# < 8 ]]; then
+# Check if at least 8 arguments are provided
+if [[ $# -lt 8 ]]; then
   prompt;
 fi
 
@@ -35,9 +37,10 @@ K=$5;
 P=$6;
 TEMPERATURE=$7;
 GPU_ID=$8;
+MODE=${9:-"direct"};  # Set MODE to "direct" if not provided
 
 if [[ $MODEL == "gpt-4o-mini" || $MODEL == "gpt-4o" || $MODEL == "gpt-4" ]]; then
-  python3 src/translation/translate_gpt.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
+  python3 src/translation/translate_gpt.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;
 elif [[ $MODEL == "gemini-1.5-pro-001" || $MODEL == "gemini-1.5-flash-001" || $MODEL == "gemini-1.5-pro-002" ]]; then
   python3 src/translation/translate_gemini.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
 elif [[ $MODEL == "StarCoder" || $MODEL == "CodeGen" || $MODEL == "CodeGeeX" || $MODEL == "LLaMa" || $MODEL == "TB-Airoboros" || $MODEL == "TB-Vicuna" ]]; then

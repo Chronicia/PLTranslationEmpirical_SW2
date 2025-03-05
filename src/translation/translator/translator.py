@@ -1,12 +1,7 @@
-from lib2to3.fixes.fix_input import context
-
-from openai import AzureOpenAI
-import openai
-import os
 from dotenv import load_dotenv
-import tiktoken
-from src.translation.translator.utils import LOGGER
-import time
+from src.translation.translator.utils import LOGGER, extract_code_block
+from src.translation.translator.runners.gpt_runner import GPTRunner
+from src.translation.translator.prompt_crafter import PromptCrafter
 
 logger = LOGGER("translator")
 logger.setLevel(LOGGER.INFO)
@@ -16,107 +11,188 @@ load_dotenv()
 
 
 class Translator:
-    def __init__(self):
-        if os.getenv("AZURE_OPENAI_ENDPOINT") is None or os.getenv("CHATBOT_API_KEY") is None:
-            print("Please ensure the .env file is imported correctly.")
-        self.client = AzureOpenAI(
-            api_version = "2024-06-01",
-            azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_key = os.environ.get("CHATBOT_API_KEY"),
-        )
-        self.system_prompt = "You are a helpful assistant."
-
-    def send_message_to_openai(self, message_log, model_name="gpt-4o-mini", temperature=0.8):
-        base_params = {
-            "model": model_name,
-            "temperature": temperature,
-            "frequency_penalty": 0.0,
-            "presence_penalty": 0.0,
-            "messages": message_log,
-            "max_tokens": 16384,
-        }
-        encoding = tiktoken.get_encoding("cl100k_base")
-        num_tokens = len(encoding.encode(message_log[1]["content"]))
-        logger.info(f"num_tokens: {num_tokens}")
-
-        response = "exceptional case"
-        is_success = False
-        max_attempts = 100
-        while max_attempts > 0:
-            try:
-                response = self.client.chat.completions.create(**base_params)
-                is_success = True
-                break
-            except openai.OpenAIError as e:
-                # Handle all OpenAI API errors
-                print(f"Error: {e}")
-                max_attempts -= 1
-                time.sleep(2)  # Sleep for 2 seconds
-                continue
-
-        if not is_success:
-            return response
-
-        # Find the first response from the chatbot that has text in it (some responses may not have text)
-        for choice in response.choices:
-            if "text" in choice:
-                return choice.text
-
-        # If no response with text is found, return the first response's content (which may be empty)
-        return response.choices[0].message.content
-
+    def __init__(self, model:str, max_tokens=16000, temperature=0.3, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
+        if "gpt" in model.lower():
+            self.promptCrafter = PromptCrafter("gpt")
+            self.runner = GPTRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
+        elif "gemini" in model.lower():
+            # TODO: Implement Gemini runner
+            pass
+        elif "deepseek" in model.lower():
+            # TODO: Implement DeepSeek runner
+            pass
+        else:
+            raise ValueError("Invalid model. Supported models: 'gpt', 'gemini', 'deepseek'.")
 
     def translate(self, from_language, to_language, code, additional_instruction=None):
-        logger.info("Default translation prompt is used")
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
-        logger.info(f"User's Input: \n{code}")
-        # context = self.get_context(from_language, code)
-        # logger.info(f"Context: \n{context}")
+        logger.info(f"Input Code: \n{code}")
+        system_prompt = "You are a helpful assistant."
+        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}."
 
-        # Using thinking-V2 model
-        response_raw = self.thinking2(from_language, to_language, code, additional_instruction)
-        logger.info(f"Reasoning results: \n{response_raw}")
-        result_raw = self.get_result(from_language, to_language, code, response_raw, additional_instruction)
-        logger.info(f"Raw Response: \n{result_raw}")
-        prompt = result_raw + f"\n\nFrom the given text, extract and print only the {to_language} code. \n Do not modify any code."
+        # Append messages to promptCrafter
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
 
-        messages = [
-            {
-                "role": "system",
-                "content": self.system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
-        logger.info(f"messages: {messages}")
-
-        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.2)
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
         logger.info(f"Response: \n{response}")
-        return response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```","")
 
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
+    def translate_with_context(self, from_language, to_language, code, additional_instruction=None):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+
+        # Get context
+        context = self.get_context(from_language, code)
+
+        # Generate final result
+        logger.info("Generating final result.")
+        system_prompt = "You are an assistant to analyze programming code."
+        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.\n\n"
+                              f"The following information may assist you in performing the translation task: \n{context}")
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+        logger.info(f"Response: \n{response}")
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
+    def translate_with_thinking(self, from_language, to_language, code, additional_instruction=None):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+
+        # Thinking
+        reasoning = self.thinking(from_language, to_language, code, additional_instruction)
+
+        # Generate final result
+        logger.info("Generating final result.")
+        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
+        system_prompt = (
+            f"You are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
+            f"Precision and accuracy are paramount. Ensure the translated code is functionally equivalent to the original. Pay close attention to language-specific nuances (e.g., memory management, type systems, libraries).\n"
+            f"Follow the given process step-by-step, without skipping or altering any steps. Carefully analyze the original code and the target language requirement.\n"
+            f"Show your work and reasoning for each step, explaining how and why you translated specific constructs. Highlight any potential pitfalls or edge cases in the translation.\n"
+            f"Verify the translated code against the original to ensure strong equivalence (identical behavior for all inputs). Confirm that the translated code is idiomatic and optimized for the target language.\n"
+            f"Offer to elaborate or provide additional information if you think it would be beneficial.\n\n"
+            f"Your responses should be thorough yet concise, striking a balance between completeness and clarity."
+        )
+        user_prompt = (
+            f"To address the user's request, please follow this structured approach:\n\n"
+            f"Carefully read and analyze the user's request: {prompt}\n\n"
+            f"Process: Apply the following reasoning steps to formulate your response:\n"
+            f"{reasoning}\n\n"
+            f"Execution:\n"
+            f"a. Follow each step of the process methodically.\n"
+            f"b. Document your thought process and any intermediate results.\n"
+            f"c. If you encounter any ambiguities or need additional information, note them for later clarification.\n"
+            f"Review and Refine:\n"
+            f"a. Cross-check your solution against the original request to ensure all aspects have been addressed.\n"
+            f"b. Verify that you've followed all steps in the given process.\n"
+            f"c. Refine your answer for clarity and conciseness without sacrificing essential information.\n\n"
+            f"Output Format:\n"
+            f"Provide a clear, structured response with:\n"
+            f"Line-by-line analysis of the translation process. \n"
+            f"Final translated code.\n"
+            f"Equivalence check and verification."
+        )
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
+    def translate_with_code_thinking(self, from_language, to_language, code, additional_instruction=None):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+
+        # Thinking
+        reasoning = self.code_thinking(from_language, to_language, code, additional_instruction)
+
+        # Generate final result
+        logger.info("Generating final result.")
+        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
+        system_prompt = (
+            f"ou are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
+            f"Precision and accuracy are paramount. Ensure the translated code is functionally equivalent to the original. Pay close attention to language-specific nuances (e.g., memory management, type systems, libraries).\n"
+            f"Follow the given process step-by-step, without skipping or altering any steps. Carefully analyze the original code and the target language requirement.\n"
+            f"Show your work and reasoning for each step, explaining how and why you translated specific constructs. Highlight any potential pitfalls or edge cases in the translation.\n"
+            f"Verify the translated code against the original to ensure strong equivalence (identical behavior for all inputs). Confirm that the translated code is idiomatic and optimized for the target language.\n"
+            f"Offer to elaborate or provide additional information if you think it would be beneficial.\n\n"
+            f"Your responses should be thorough yet concise, striking a balance between completeness and clarity."
+        )
+        user_prompt = (
+            f"To address the user's request, please follow this structured approach:\n\n"
+            f"Carefully read and analyze the user's request: {prompt}\n\n"
+            f"Process: Apply the following reasoning steps to formulate your response:\n"
+            f"{reasoning}\n\n"
+            f"Execution:\n"
+            f"a. Follow each step of the process methodically.\n"
+            f"b. Document your thought process and any intermediate results.\n"
+            f"c. If you encounter any ambiguities or need additional information, note them for later clarification.\n"
+            f"Review and Refine:\n"
+            f"a. Cross-check your solution against the original request to ensure all aspects have been addressed.\n"
+            f"b. Verify that you've followed all steps in the given process.\n"
+            f"c. Refine your answer for clarity and conciseness without sacrificing essential information.\n\n"
+            f"Output Format:\n"
+            f"Provide a clear, structured response with:\n"
+            f"Line-by-line analysis of the translation process. \n"
+            f"Final translated code.\n"
+            f"Equivalence check and verification."
+        )
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
 
     def get_context(self, language, code):
+        logger.info(f"Get context for {language}")
         system_prompt = f"You are an assistant to analyze programming code."
-        prompt = f"{code} \n\n Please analyze the following {language} code snippet.\n Identify the input, output of the code. Translate the code implementation into pseudocode. Finally, give a 100 words brief summary on the intention of the code."
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
+        user_prompt = f"{code} \n\n Please analyze the following {language} code snippet.\n Give a detailed summary on the function of the code. \n Then, identify the input, output of the code. Finally, translate the code implementation into pseudocode."
 
-        response = self.send_message_to_openai(messages)
+        # Append messages to promptCrafter
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        logger.info(f"Context response: \n{response}")
         return response
 
-
     def thinking(self, from_language, to_language, code, additional_instruction=None):
+        logger.info("General thinking translation process.")
         system_prompt = """<open_ai_thinking_protocol>
 
 For EVERY SINGLE interaction with the human, GPT MUST engage in a **comprehensive, natural, and unfiltered** thinking process before responding or tool using. Besides, GPT is also able to think and reflect during responding when it considers doing so would be good for a better response.
@@ -879,30 +955,23 @@ Here are some examples of GPT's thinking and responses in action:
 </open-ai_thinking_protocol>
 
 """
-
-        logger.info("Thinking translation process.")
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
-        prompt = (
+        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}. Make sure that the translated code function exactly the same as the original code. Remember to think before you make a response."
+        user_prompt = (
                 f"Create a step-by-step process that will perform the request given. \n"
-                f"Request: {user_prompt} \n"
+                f"Request: {prompt} \n"
                 f"Process:"
         )
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
-        logger.info(f"messages: {messages}")
 
-        response = self.send_message_to_openai(messages)
+        # Append messages to promptCrafter
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        logger.info(f"General thinking response: \n{response}")
         return response
 
-    def thinking2(self, from_language, to_language, code, additional_instruction=None):
+    def code_thinking(self, from_language, to_language, code, additional_instruction=None):
+        logger.info("Code thinking translation process.")
         system_prompt = (
             f"You are a software engineer expert.\n"
             f"You are not writing to the user directly. Instead you are thinking deeply about the code translation problem to come up with a step-by-step process that will come to the correct solution.\n"
@@ -916,90 +985,39 @@ Here are some examples of GPT's thinking and responses in action:
             f"7. Is the translated code function exactly the same as the original code?\n"
             f"7. Is the input and output of the translated completely identical to the original code?\n\n"
             f"Your Task:\n"
-            f"Think step-by-step about each line of code.\n"
             f"Output detailed reasoning for every decision.\n"
             f"Ensure the translated code is robust, idiomatic, and weakly equivalent.\n"
             f"Ensure the I/O of the translated code is completely identical to the original code.\n\n"
             f"Create that process based on the request."
+            f"Do not perform line-by-line translation. Instead, provide a detailed reasoning for each step."
         )
 
-        logger.info("Thinking translation process.")
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
-        prompt = (
+        prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
+        user_prompt = (
             f"Create a step-by-step process that will perform the code translation task given. \n"
-            f"Request: {user_prompt} \n"
+            f"Request: {prompt} \n"
             f"Process:"
         )
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
-        logger.info(f"messages: {messages}")
 
-        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.8)
-        return response
+        # Append messages to promptCrafter
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
 
-    def get_result(self, from_language, to_language, code, reasoning, additional_instruction):
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
-        logger.info("Generating final result.")
-        system_prompt = (
-            f"ou are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
-            f"Precision and accuracy are paramount. Ensure the translated code is functionally equivalent to the original. Pay close attention to language-specific nuances (e.g., memory management, type systems, libraries).\n"
-            f"Follow the given process step-by-step, without skipping or altering any steps. Carefully analyze the original code and the target language requirement.\n"
-            f"Show your work and reasoning for each step, explaining how and why you translated specific constructs. Highlight any potential pitfalls or edge cases in the translation.\n"
-            f"Verify the translated code against the original to ensure strong equivalence (identical behavior for all inputs). Confirm that the translated code is idiomatic and optimized for the target language.\n"
-            f"Offer to elaborate or provide additional information if you think it would be beneficial.\n\n"
-            f"Your responses should be thorough yet concise, striking a balance between completeness and clarity."
-        )
-        prompt = (
-            f"To address the user's request, please follow this structured approach:\n\n"
-            f"Carefully read and analyze the user's request: {user_prompt}\n\n"
-            f"Process: Apply the following reasoning steps to formulate your response:\n"
-            f"{reasoning}\n\n"
-            f"Execution:\n"
-            f"a. Follow each step of the process methodically.\n"
-            f"b. Document your thought process and any intermediate results.\n"
-            f"c. If you encounter any ambiguities or need additional information, note them for later clarification.\n"
-            f"Review and Refine:\n"
-            f"a. Cross-check your solution against the original request to ensure all aspects have been addressed.\n"
-            f"b. Verify that you've followed all steps in the given process.\n"
-            f"c. Refine your answer for clarity and conciseness without sacrificing essential information.\n\n"
-            f"Output Format:\n"
-            f"Provide a clear, structured response with:\n"
-            f"Line-by-line analysis of the translation process. \n"
-            f"Final translated code.\n"
-            f"Equivalence check and verification."
-        )
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
-        logger.info(f"messages: {messages}")
-
-        response = self.send_message_to_openai(messages, model_name="gpt-4o-mini", temperature=0.8)
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        logger.info(f"Code thinking response: \n{response}")
         return response
 
 
 if __name__ == "__main__":
-    translator = Translator()
+    translator = Translator("gpt-4o-mini")
     user_prompt = """import java.io.BufferedReader ; import java.io.InputStreamReader ; import java.util.Arrays ; public class atcoder_ABC150_E { public static void main ( String [ ] args ) throws Exception { BufferedReader br = new BufferedReader ( new InputStreamReader ( System.in ) ) ; String [ ] sa = br.readLine ( ).split ( " " ) ; int n = Integer.parseInt ( sa [ 0 ] ) ; sa = br.readLine ( ).split ( " " ) ; int [ ] c = new int [ n ] ; for ( int i = 0 ; i < n ; i ++ ) { c [ i ] = Integer.parseInt ( sa [ i ] ) ; } br.close ( ) ; int mod = 1000000007 ; if ( n == 1 ) { System.out.println ( c [ 0 ] * 2 % mod ) ; return ; } Arrays.parallelSort ( c ) ; long b = power ( 2 , n ) ; long a = power ( 2 , n - 2 ) ; long ans = 0 ; for ( int i = 2 ; i <= n + 1 ; i ++ ) { long val = a * i % mod ; val *= c [ n + 1 - i ] ; val %= mod ; ans += val ; ans %= mod ; } ans *= b ; ans %= mod ; System.out.println ( ans ) ; } static long power ( long x , long n ) { if ( n == 0 ) { return 1 ; } int mod = 1000000007 ; long val = power ( x , n / 2 ) ; val = val * val % mod ; if ( n % 2 == 1 ) { val = val * x % mod ; } return val ; } }
 """
     additional_instruction = ""
     from_language = "Java"
     to_language = "Python"
-    response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
+    # response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
+    # response = translator.get_context(response, from_language)
+    response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
+    # response = translator.translate_with_code_thinking(from_language, to_language, user_prompt, additional_instruction)
 
-    code = response.replace(f"```{'cpp' if to_language.lower() == 'c++' else to_language.lower()}", "").replace("```","")
-    print(code)
+    print(response)
