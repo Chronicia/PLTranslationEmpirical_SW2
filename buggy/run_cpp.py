@@ -1,16 +1,16 @@
 import subprocess
 
-# Define the Java file and class name
-java_file = "./buggy/test/test.java"
-class_name = "test"  # Class name should match the file name
+# Define the C++ file and executable name
+cpp_file = "./buggy/test/test.cpp"
+executable_name = "test"  # Executable name (without .out)
 
 # Define the input file
 input_file = "./buggy/test/test.in"
 
 try:
-    # Step 1: Compile the Java program
+    # Step 1: Compile the C++ program
     compile_process = subprocess.run(
-        ["javac", java_file],
+        ["g++", "-o", executable_name, cpp_file],  # Corrected command
         capture_output=True,
         text=True
     )
@@ -21,16 +21,16 @@ try:
         print(compile_process.stderr)
         exit(1)
 
-    # Step 2: Run the Java program with input redirection
+    # Step 2: Run the compiled C++ program with input redirection
     with open(input_file, "r") as f:
         run_process = subprocess.run(
-            ["java", "-cp", "buggy", class_name],
+            [f"./{executable_name}"],  # Corrected executable name
             stdin=f,
             capture_output=True,
             text=True
         )
 
-    # Print the output from the Java program
+    # Print the output from the C++ program
     print("Output:")
     print(run_process.stdout)
 
@@ -39,7 +39,7 @@ try:
         print("Error:")
         print(run_process.stderr)
 
-except FileNotFoundError:
-    print("Error: Java compiler (javac) or Java runtime (java) not found.")
+except FileNotFoundError as e:
+    print(f"Error: File not found. {e}")
 except Exception as e:
     print(f"An error occurred: {e}")
