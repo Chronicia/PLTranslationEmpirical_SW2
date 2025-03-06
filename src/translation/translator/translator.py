@@ -137,7 +137,7 @@ class Translator:
         logger.info("Generating final result.")
         prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. \nYou may follow the additional instruction: {additional_instruction}."
         system_prompt = (
-            f"ou are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
+            f"You are an advanced AI assistant specializing in code translation. Your primary goal is to accurately and thoroughly translate code from one programming language to another by meticulously following the specified process. Remember:\n\n"
             f"Precision and accuracy are paramount. Ensure the translated code is functionally equivalent to the original. Pay close attention to language-specific nuances (e.g., memory management, type systems, libraries).\n"
             f"Follow the given process step-by-step, without skipping or altering any steps. Carefully analyze the original code and the target language requirement.\n"
             f"Show your work and reasoning for each step, explaining how and why you translated specific constructs. Highlight any potential pitfalls or edge cases in the translation.\n"
@@ -1017,7 +1017,7 @@ if __name__ == "__main__":
     to_language = "Python"
     # response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
     # response = translator.get_context(response, from_language)
-    response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
-    # response = translator.translate_with_code_thinking(from_language, to_language, user_prompt, additional_instruction)
+    # response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
+    response = translator.translate_with_code_thinking(from_language, to_language, user_prompt, additional_instruction)
 
     print(response)
