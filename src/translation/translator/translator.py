@@ -185,6 +185,7 @@ class Translator:
         user_prompt = f"{code} \n\n Please analyze the following {language} code snippet.\n Give a detailed summary on the function of the code. \n Then, identify the input, output of the code. Finally, translate the code implementation into pseudocode."
 
         # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
         self.promptCrafter.append_message(system_prompt, role="system")
         self.promptCrafter.append_message(user_prompt, role="user")
 
