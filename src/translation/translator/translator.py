@@ -179,6 +179,123 @@ class Translator:
         logger.info(f"Translated code: \n{translated_code}")
         return translated_code
 
+    def translate_with_pseudocode(self, from_language, to_language, code, additional_instruction=None):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+
+        # Get context
+        pseudocode = self.get_pseudocode(from_language, code)
+
+        # Generate final result
+        logger.info("Generating final result.")
+        system_prompt = "You are an assistant to analyze programming code."
+        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.\n\n"
+                              f"The following pseudocode may assist you in performing the translation task: \n{pseudocode}")
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+        logger.info(f"Response: \n{response}")
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
+
+    def get_pseudocode(self, language, code):
+        logger.info(f"Get pseudocode for {language}")
+        system_prompt = (f"You are a code translation assistant. "
+                         f"Your task is to convert {language} code into clear, concise, and language-agnostic pseudocode."
+                         f"The pseudocode should focus on the logic and structure of the code, avoiding any {language}-specific syntax."
+                         f"Do not include any programming language-specific details unless absolutely necessary.")
+
+        if language.lower() == "python":
+            user_prompt = """Translate the following Python code into pseudocode. Follow these guidelines:
+1. Avoid Python-specific syntax (e.g., use "IF" instead of "if").
+2. Break down complex operations into simple steps.
+
+**Python Code:**
+```python
+class Solution:
+    def stableMountains(self, height: List[int], threshold: int) -> List[int]:
+
+        ans = []
+
+        for i, (prv, mtn) in enumerate(pairwise(height)):
+            if prv > threshold: ans.append(i+1)
+
+        return ans
+
+**Pseudocode**
+Input:
+    height: contain heights of an array of mountain
+    threshold: A mountain is 'stable' if the mountain just before it is higher than threshold
+Output:
+    ans: all stable mountains
+function stableMountains(height, threshold):
+    ans = new empty list
+    for i in 0..height.size()-1 (right bound exclusive):
+        add i+1 to ans if height[i] > threshold
+    return ans
+
+Translate the following Python code into pseudocode.
+""" + code
+
+        elif language.lower() == "java":
+            user_prompt = """Translate the following Java code into pseudocode. Follow these guidelines:
+1. Avoid Java-specific syntax (e.g., use "IF" instead of "if").
+2. Break down complex operations into simple steps.
+
+**Java Code:**
+```java
+class Solution {
+    public List<Integer> stableMountains(int[] height, int threshold) {
+        List<Integer> ans = new ArrayList<>();
+        
+        for (int i = 0; i < height.length - 1; i++) {
+            int prv = height[i];
+            if (prv > threshold) {
+                ans.add(i + 1);
+            }
+        }
+        
+        return ans;
+    }
+}
+
+**Pseudocode**
+Input:
+    height: contain heights of an array of mountain
+    threshold: A mountain is 'stable' if the mountain just before it is higher than threshold
+Output:
+    ans: all stable mountains
+function stableMountains(height, threshold):
+    ans = new empty list
+    for i in 0..height.size()-1 (right bound exclusive):
+        add i+1 to ans if height[i] > threshold
+    return ans
+    
+Translate the following Java code into pseudocode.
+""" + code
+
+        else:
+            raise ValueError(f"Language {language} is not supported.")
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        logger.info(f"Pseudocode response: \n{response}")
+        return response
+
     def get_context(self, language, code):
         logger.info(f"Get context for {language}")
         system_prompt = f"You are an assistant to analyze programming code."
@@ -1022,6 +1139,6 @@ if __name__ == "__main__":
     # response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
     # response = translator.get_context(response, from_language)
     # response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
-    response = translator.translate_with_code_thinking(from_language, to_language, user_prompt, additional_instruction)
+    response = translator.translate_with_pseudocode(from_language, to_language, user_prompt, additional_instruction)
 
     print(response)
