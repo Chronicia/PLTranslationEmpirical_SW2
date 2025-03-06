@@ -32,6 +32,7 @@ class Translator:
         user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}."
 
         # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
         self.promptCrafter.append_message(system_prompt, role="system")
         self.promptCrafter.append_message(user_prompt, role="user")
 
