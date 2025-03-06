@@ -965,6 +965,7 @@ Here are some examples of GPT's thinking and responses in action:
         )
 
         # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
         self.promptCrafter.append_message(system_prompt, role="system")
         self.promptCrafter.append_message(user_prompt, role="user")
 
@@ -1002,6 +1003,7 @@ Here are some examples of GPT's thinking and responses in action:
         )
 
         # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
         self.promptCrafter.append_message(system_prompt, role="system")
         self.promptCrafter.append_message(user_prompt, role="user")
 
