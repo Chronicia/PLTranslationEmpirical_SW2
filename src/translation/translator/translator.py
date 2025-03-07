@@ -1128,6 +1128,28 @@ Here are some examples of GPT's thinking and responses in action:
         logger.info(f"Code thinking response: \n{response}")
         return response
 
+    def self_checking(self, from_language, to_language, code, additional_instruction=None):
+        translated_code = self.translate(from_language, to_language, code, additional_instruction)
+        logger.info("Self checking translation process.")
+        system_prompt = ("You are a software engineer expert.")
+
+        user_prompt = (
+            f"Verify if the translated {to_language} code is bug free and weakly equivalence to the original {from_language} code. \n\n"
+            f"Original code: {code} \n\n"
+            f"Translated code: {translated_code} \n\n"
+            f"If there are any bugs or issues, fix the bug and output the complete code.\n"
+            f"Otherwise, output the translated code."
+        )
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        logger.info(f"Self checking response: \n{response}")
+        return response
+
 
 if __name__ == "__main__":
     translator = Translator("gpt-4o-mini")
