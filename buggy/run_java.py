@@ -24,7 +24,7 @@ try:
     # Step 2: Run the Java program with input redirection
     with open(input_file, "r") as f:
         run_process = subprocess.run(
-            ["java", "-cp", "buggy", class_name],
+            ["java", "-cp", "./buggy/test", class_name],
             stdin=f,
             capture_output=True,
             text=True
