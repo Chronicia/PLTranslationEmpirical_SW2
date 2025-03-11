@@ -39,7 +39,7 @@ TEMPERATURE=$7;
 GPU_ID=$8;
 MODE=${9:-"direct"};  # Set MODE to "direct" if not provided
 
-if [[ $MODEL == "gpt-4o-mini" || $MODEL == "gpt-4o" || $MODEL == "gpt-4" || $MODEL == "gpt-4o-mini-2024-07-18-cheating" ]]; then
+if [[ $MODEL == "gpt-4o-mini" || $MODEL == "gpt-4o" || $MODEL == "gpt-4" || $MODEL == "gpt-4o-mini-2024-07-18-cheating" || $MODEL == "deepseek-reasoner" || $MODEL == "deepseek-chat" ]]; then
   python3 src/translation/translate_gpt.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;
 elif [[ $MODEL == "gemini-1.5-pro-001" || $MODEL == "gemini-1.5-flash-001" || $MODEL == "gemini-1.5-pro-002" ]]; then
   python3 src/translation/translate_gemini.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
