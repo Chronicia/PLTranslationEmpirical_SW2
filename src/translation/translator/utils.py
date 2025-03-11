@@ -6,8 +6,8 @@ import re
 
 
 def extract_code_block(text):
-    # Use a regular expression to find code blocks with any language
-    code_block_pattern = re.compile(r"```(\w+)?\s*(.*?)```", re.DOTALL)
+    # Use a regular expression to find code blocks with any language, including those with special characters
+    code_block_pattern = re.compile(r"```([\w+]+)?\s*(.*?)```", re.DOTALL)
 
     # Search for the first code block in the text
     match = code_block_pattern.search(text)
@@ -19,6 +19,29 @@ def extract_code_block(text):
         return language, code
     else:
         raise ValueError("No code block found in the text.")
+
+def remove_cpp_prefix(directory):
+    # Traverse the directory and find all .cpp files
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.cpp'):
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.readlines()
+
+                    # Remove "++" from the first line if it exists
+                    if content and content[0].startswith('++'):
+                        content[0] = content[0][2:]  # Remove the first two characters
+
+                    # Write the modified content back to the file
+                    with open(file_path, 'w') as f:
+                        f.writelines(content)
+
+                    print(f"Updated: {file_path}")
+
+                except Exception as e:
+                    print(f"Error processing {file_path}: {e}")
 
 class LOGGER:
     WARNING = logging.WARNING
@@ -75,27 +98,5 @@ class LOGGER:
             self.logger.removeHandler(self.consoleHandler)
 
 if __name__ == "__main__":
-    # Example usage of extract_code_block
-    text = """
-Here is a Python code block:
-
-```python
-
-def say_hello():
-    print("Hello, World!")
-
-say_hello()
-```
-```Java
-public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}
-```
-sdasdasdada
-    """
-
-    language, code = extract_code_block(text)
-    print(f"Language: {language}")
-    print(f"Code: {code}")
+    directory_path = '/Users/waipangchan/Documents/PLTranslationEmpirical_SW2/output/deepseek-chat/avatar/Python/C++'
+    remove_cpp_prefix(directory_path)

@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
-
-from src.translation.translator.runners.poe_runner import POERunner
 from src.translation.translator.utils import LOGGER, extract_code_block
 from src.translation.translator.runners.gpt_runner import GPTRunner
+from src.translation.translator.runners.deepseek_runner import DeepseekRunner
 from src.translation.translator.prompt_crafter import PromptCrafter
 
 logger = LOGGER("translator")
@@ -21,20 +20,18 @@ class Translator:
             # TODO: Implement Gemini runner
             pass
         elif "deepseek" in model.lower():
-            # TODO: Implement DeepSeek runner
-            pass
-        elif "o3" in model.lower() or "claude" in model.lower():
-            self.promptCrafter = PromptCrafter("poe")
-            self.runner = POERunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
+            self.promptCrafter = PromptCrafter("gpt")
+            self.runner = DeepseekRunner(model, 8192, temperature, top_p, frequency_penalty, presence_penalty)
         else:
-            raise ValueError("Invalid model. Supported models: 'gpt', 'gemini', 'deepseek', 'o3', 'claude'.")
+            raise ValueError("Invalid model. Supported models: 'gpt', 'gemini', 'deepseek'.")
 
     def translate(self, from_language, to_language, code, additional_instruction=None):
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
         logger.info(f"Input Code: \n{code}")
         system_prompt = "You are a helpful assistant."
-        user_prompt = code + f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}."
+        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                              f"Output format: ```{to_language}\n code \n```")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
@@ -1157,15 +1154,15 @@ Here are some examples of GPT's thinking and responses in action:
 
 
 if __name__ == "__main__":
-    translator = Translator("Claude-3-Haiku")
+    translator = Translator("deepseek-chat")
     user_prompt = """import java.io.BufferedReader ; import java.io.InputStreamReader ; import java.util.Arrays ; public class atcoder_ABC150_E { public static void main ( String [ ] args ) throws Exception { BufferedReader br = new BufferedReader ( new InputStreamReader ( System.in ) ) ; String [ ] sa = br.readLine ( ).split ( " " ) ; int n = Integer.parseInt ( sa [ 0 ] ) ; sa = br.readLine ( ).split ( " " ) ; int [ ] c = new int [ n ] ; for ( int i = 0 ; i < n ; i ++ ) { c [ i ] = Integer.parseInt ( sa [ i ] ) ; } br.close ( ) ; int mod = 1000000007 ; if ( n == 1 ) { System.out.println ( c [ 0 ] * 2 % mod ) ; return ; } Arrays.parallelSort ( c ) ; long b = power ( 2 , n ) ; long a = power ( 2 , n - 2 ) ; long ans = 0 ; for ( int i = 2 ; i <= n + 1 ; i ++ ) { long val = a * i % mod ; val *= c [ n + 1 - i ] ; val %= mod ; ans += val ; ans %= mod ; } ans *= b ; ans %= mod ; System.out.println ( ans ) ; } static long power ( long x , long n ) { if ( n == 0 ) { return 1 ; } int mod = 1000000007 ; long val = power ( x , n / 2 ) ; val = val * val % mod ; if ( n % 2 == 1 ) { val = val * x % mod ; } return val ; } }
 """
     additional_instruction = ""
     from_language = "Java"
     to_language = "Python"
-    response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
+    # response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
     # response = translator.get_context(response, from_language)
     # response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
-    # response = translator.translate_with_pseudocode(from_language, to_language, user_prompt, additional_instruction)
+    response = translator.translate_with_pseudocode(from_language, to_language, user_prompt, additional_instruction)
 
     print(response)
