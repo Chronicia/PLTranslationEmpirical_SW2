@@ -6,13 +6,13 @@ import tiktoken
 from src.translation.translator.utils import LOGGER
 import time
 
-logger = LOGGER("gpt_runner")
+logger = LOGGER("azure_runner")
 logger.setLevel(LOGGER.INFO)
 logger.disable_stdout()
 # Load environment variables from .env file
 load_dotenv()
 
-class GPTRunner:
+class AzureRunner:
     def __init__(self, model_name, max_tokens=16000, temperature=0.3, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
         if os.getenv("AZURE_OPENAI_ENDPOINT") is None or os.getenv("CHATBOT_API_KEY") is None:
             print("Please ensure the .env file is imported correctly.")

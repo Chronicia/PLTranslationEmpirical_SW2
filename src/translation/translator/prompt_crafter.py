@@ -4,12 +4,14 @@ class PromptCrafter:
     messages = []
     def __init__(self, model):
         self.model = model.lower()
-        if self.model not in ['gpt', 'gemini', 'deepseek','poe']:
+        if self.model not in ['gpt', 'gemini', 'deepseek','poe', 'gpt_reasoning']:
             raise ValueError("Invalid model. Supported models: 'gpt', 'gemini', 'deepseek', 'poe'.")
 
     def append_message(self, message, role="user", context=None):
         if self.model == 'gpt':
             return self._craft_openai_prompt(message, role)
+        elif self.model == 'gpt_reasoning':
+            return self._craft_openai_reasoning_prompt(message, role)
         elif self.model == 'gemini':
             return self._craft_gemini_prompt(message, role, context)
         elif self.model == 'deepseek':
@@ -22,6 +24,11 @@ class PromptCrafter:
         if role not in ["user", "system", "assistant"]:
             raise ValueError("Invalid role. Supported roles: 'user', 'system', 'assistant'.")
         else:
+            self.messages.append({"role": role, "content": message})
+    def _craft_openai_reasoning_prompt(self, message, role="user"):
+        if role not in ["user", "system", "assistant"]:
+            raise ValueError("Invalid role. Supported roles: 'user', 'system', 'assistant'.")
+        if role == "user":
             self.messages.append({"role": role, "content": message})
 
     def _craft_gemini_prompt(self, message, role="user", context=None):

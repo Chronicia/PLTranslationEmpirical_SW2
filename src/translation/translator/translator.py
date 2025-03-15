@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from src.translation.translator.utils import LOGGER, extract_code_block
-from src.translation.translator.runners.gpt_runner import GPTRunner
+from src.translation.translator.runners.azure_openai_runner import AzureRunner
+from src.translation.translator.runners.openai_runner import GPTRunner
 from src.translation.translator.runners.deepseek_runner import DeepseekRunner
 from src.translation.translator.prompt_crafter import PromptCrafter
 
@@ -13,9 +14,15 @@ load_dotenv()
 
 class Translator:
     def __init__(self, model:str, max_tokens=16000, temperature=0.3, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
-        if "gpt" in model.lower():
+        if "o1-mini" in model.lower():
+            self.promptCrafter = PromptCrafter("gpt_reasoning")
+            self.runner = GPTRunner(model)
+        elif "ft:" in model.lower():
             self.promptCrafter = PromptCrafter("gpt")
             self.runner = GPTRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
+        elif "gpt" in model.lower():
+            self.promptCrafter = PromptCrafter("gpt")
+            self.runner = AzureRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
         elif "gemini" in model.lower():
             # TODO: Implement Gemini runner
             pass
