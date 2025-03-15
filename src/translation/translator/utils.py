@@ -18,7 +18,8 @@ def extract_code_block(text):
         code = match.group(2).strip()  # The code inside the block
         return language, code
     else:
-        raise ValueError("No code block found in the text.")
+        return None
+        #raise ValueError("No code block found in the text.")
 
 def remove_cpp_prefix(directory):
     # Traverse the directory and find all .cpp files
