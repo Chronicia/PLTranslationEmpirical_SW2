@@ -93,7 +93,7 @@ class Translate:
                 print(translated_code, file=f)
 
         # Split snippets into batches of 100
-        batch_size = 100
+        batch_size = 50
         batches = [snippets[i:i + batch_size] for i in range(0, len(snippets), batch_size)]
 
         for batch in tqdm(batches, total=len(batches), bar_format="{desc:<5.5}{percentage:3.0f}%|{bar:10}{r_bar}"):
