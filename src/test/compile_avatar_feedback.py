@@ -59,6 +59,15 @@ def main(args):
                         stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
+                        try:
+                            # Try graceful termination first
+                            p.terminate()
+                            stdout, stderr_data = p.communicate(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            # Force kill if still running
+                            p.kill()
+                            stdout, stderr_data = p.communicate()
+
                         break
 
                     try:
@@ -126,6 +135,15 @@ def main(args):
                         stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
+                        try:
+                            # Try graceful termination first
+                            p.terminate()
+                            stdout, stderr_data = p.communicate(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            # Force kill if still running
+                            p.kill()
+                            stdout, stderr_data = p.communicate()
+
                         break
 
                     try:
@@ -198,6 +216,15 @@ def main(args):
                         stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
+                        try:
+                            # Try graceful termination first
+                            p.terminate()
+                            stdout, stderr_data = p.communicate(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            # Force kill if still running
+                            p.kill()
+                            stdout, stderr_data = p.communicate()
+
                         break
 
                     try:
@@ -265,6 +292,15 @@ def main(args):
                         stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
+                        try:
+                            # Try graceful termination first
+                            p.terminate()
+                            stdout, stderr_data = p.communicate(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            # Force kill if still running
+                            p.kill()
+                            stdout, stderr_data = p.communicate()
+
                         break
 
                     try:
@@ -332,6 +368,15 @@ def main(args):
                         stdout, stderr_data = p.communicate(input=f_in.encode(), timeout=15)
                     except subprocess.TimeoutExpired:
                         infinite_loop.append((files[i], "the program enters an infinite loop"))
+                        try:
+                            # Try graceful termination first
+                            p.terminate()
+                            stdout, stderr_data = p.communicate(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            # Force kill if still running
+                            p.kill()
+                            stdout, stderr_data = p.communicate()
+
                         break
 
                     try:
