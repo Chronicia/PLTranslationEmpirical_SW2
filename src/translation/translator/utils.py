@@ -3,23 +3,54 @@ import os
 from datetime import datetime
 import sys
 import re
+from openai import AzureOpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-def extract_code_block(text):
-    # Use a regular expression to find code blocks with any language, including those with special characters
+def extract_code_block(text, retry_limit=5):
     code_block_pattern = re.compile(r"```([\w+]+)?\s*(.*?)```", re.DOTALL)
 
-    # Search for the first code block in the text
-    match = code_block_pattern.search(text)
+    for attempt in range(retry_limit + 1):
+        # Search for the first code block in the text
+        match = code_block_pattern.search(text)
 
-    if match:
-        # Extract the language (if specified) and the code
-        language = match.group(1)  # The language (e.g., C++, Python, Pseudocode)
-        code = match.group(2).strip()  # The code inside the block
-        return language, code
-    else:
-        return None
-        #raise ValueError("No code block found in the text.")
+        if match:
+            language = match.group(1)
+            code = match.group(2).strip()
+            return language, code
+        elif attempt < retry_limit:
+            # If no match, try to get code snippets by LLM and retry
+            text = get_code_snippets(text)
+        else:
+            return None
+
+def get_code_snippets(text):
+    system_prompt = f"You are a helpful assistant."
+    user_prompt = (f"{text} \n\nFrom the text, provide only the code snippets. Your response should contain nothing other then the code.\n"
+                   f"Output format: ```language\n code \n```")
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": user_prompt,
+        }
+    ]
+    client = AzureOpenAI(
+        api_version="2024-06-01",
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key=os.environ.get("CHATBOT_API_KEY")
+    )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+    return response.choices[0].message.content
 
 def remove_cpp_prefix(directory):
     # Traverse the directory and find all .cpp files
@@ -99,5 +130,9 @@ class LOGGER:
             self.logger.removeHandler(self.consoleHandler)
 
 if __name__ == "__main__":
-    directory_path = '/Users/waipangchan/Documents/PLTranslationEmpirical_SW2/output/deepseek-chat/avatar/Python/C++'
-    remove_cpp_prefix(directory_path)
+    code = """
+    import numpy
+    """
+
+    code = extract_code_block(code)
+    print(code)
