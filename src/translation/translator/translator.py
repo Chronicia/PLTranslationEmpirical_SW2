@@ -36,7 +36,7 @@ class Translator:
         logger.info(f"Input Code: \n{code}")
         system_prompt = "You are a helpful assistant."
         user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                              f"Output format: ```{to_language}\n code \n``` \n Think step by step.")
+                              f"Output format: ```{to_language}\n code \n```")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
