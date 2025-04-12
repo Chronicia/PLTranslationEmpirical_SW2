@@ -4,6 +4,7 @@ from src.translation.translator.runners.azure_openai_runner import AzureRunner
 from src.translation.translator.runners.openai_runner import GPTRunner
 from src.translation.translator.runners.deepseek_runner import DeepseekRunner
 from src.translation.translator.prompt_crafter import PromptCrafter
+from src.translation.translator.o1 import cot_response
 
 logger = LOGGER("translator")
 logger.setLevel(LOGGER.INFO)
@@ -22,10 +23,7 @@ class Translator:
             self.runner = GPTRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
         elif "gpt" in model.lower():
             self.promptCrafter = PromptCrafter("gpt")
-            self.runner = AzureRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
-        elif "gemini" in model.lower():
-            # TODO: Implement Gemini runner
-            pass
+            self.runner = GPTRunner(model, max_tokens, temperature, top_p, frequency_penalty, presence_penalty)
         elif "deepseek" in model.lower():
             self.promptCrafter = PromptCrafter("gpt")
             self.runner = DeepseekRunner(model, 8192, temperature, top_p, frequency_penalty, presence_penalty)
@@ -38,7 +36,7 @@ class Translator:
         logger.info(f"Input Code: \n{code}")
         system_prompt = "You are a helpful assistant."
         user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                              f"Output format: ```{to_language}\n code \n```")
+                              f"Output format: ```{to_language}\n code \n``` \n Think step by step.")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
@@ -47,6 +45,24 @@ class Translator:
 
         # Run the prompt
         response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+        logger.info(f"Response: \n{response}")
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
+    def translate_with_o1(self, from_language, to_language, code, additional_instruction="You must think step by step to reach the final answer. Do not say \"I will something\" without answering, you must perform the task suggested by yourself."):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+        system_prompt = "You are a helpful assistant."
+        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                              f"Output format: ```{to_language}\n code \n```")
+
+        # Run the prompt
+        steps, total_thinking_time = cot_response(user_prompt)
+        response = steps[-1][1]
         logger.info(f"Response: \n{response}")
 
         # Extract code block from response
@@ -199,8 +215,7 @@ class Translator:
         # Generate final result
         logger.info("Generating final result.")
         system_prompt = "You are an assistant to analyze programming code."
-        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.\n\n"
-                              f"The following pseudocode may assist you in performing the translation task: \n{pseudocode}")
+        user_prompt = pseudocode + (f"\n\n Translate the pseudocode from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
@@ -218,6 +233,8 @@ class Translator:
 
 
     def get_pseudocode(self, language, code):
+        promptCrafter = PromptCrafter("gpt")
+        runner = DeepseekRunner("deepseek-reasoner", 8192)
         logger.info(f"Get pseudocode for {language}")
         system_prompt = (f"You are a code translation assistant. "
                          f"Your task is to convert {language} code into clear, concise, and language-agnostic pseudocode."
@@ -297,11 +314,11 @@ Translate the following Java code into pseudocode.
             raise ValueError(f"Language {language} is not supported.")
 
         # Append messages to promptCrafter
-        self.promptCrafter.clear_messages()
-        self.promptCrafter.append_message(system_prompt, role="system")
-        self.promptCrafter.append_message(user_prompt, role="user")
+        promptCrafter.clear_messages()
+        promptCrafter.append_message(system_prompt, role="system")
+        promptCrafter.append_message(user_prompt, role="user")
 
-        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        response = runner.run_with_retry(promptCrafter.get_messages(), temperature=0.7)
         logger.info(f"Pseudocode response: \n{response}")
         return response
 
@@ -1170,6 +1187,6 @@ if __name__ == "__main__":
     # response = translator.translate(from_language, to_language, user_prompt, additional_instruction)
     # response = translator.get_context(response, from_language)
     # response = translator.translate_with_thinking(from_language, to_language, user_prompt, additional_instruction)
-    response = translator.translate_with_pseudocode(from_language, to_language, user_prompt, additional_instruction)
+    response = translator.translate_with_o1(from_language, to_language, user_prompt, additional_instruction)
 
     print(response)
