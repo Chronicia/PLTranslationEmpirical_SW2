@@ -48,10 +48,20 @@ class GPTRunner:
         if presence_penalty is None:
             presence_penalty = self.presence_penalty
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages= prompt
-        )
+        if self.model_name == "o1-mini" or self.model_name == "o3-mini":
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=prompt
+            )
+        else:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=prompt,
+                temperature=temperature,
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty
+            )
 
         # encoding = tiktoken.get_encoding("cl100k_base")
         # num_tokens = len(encoding.encode(prompt[1]["content"]))
@@ -60,7 +70,7 @@ class GPTRunner:
         logger.info(f"response: \n{response.choices[0].message.content}")
         return response.choices[0].message.content
 
-    def run_with_retry(self, prompt, max_retries=30, max_tokens=None, temperature=None, top_p=None, frequency_penalty=None, presence_penalty=None):
+    def run_with_retry(self, prompt, max_retries=3, max_tokens=None, temperature=None, top_p=None, frequency_penalty=None, presence_penalty=None):
         if max_tokens is None:
             max_tokens = self.max_tokens
         if temperature is None:
