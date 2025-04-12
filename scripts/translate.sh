@@ -39,12 +39,4 @@ TEMPERATURE=$7;
 GPU_ID=$8;
 MODE=${9:-"direct"};  # Set MODE to "direct" if not provided
 
-if [[ $MODEL == "gpt-4o-mini" || $MODEL == "gpt-4o" || $MODEL == "gpt-4" || $MODEL == "ft:gpt-4o-mini-2024-07-18:personal:cheating:BA7tjXuK" || $MODEL == "deepseek-reasoner" || $MODEL == "deepseek-chat" || $MODEL == "o1-mini" || $MODEL == "ft:gpt-4o-mini-2024-07-18:transcoderx:pytoc:BBNteRrT" ]]; then
-  python3 src/translation/translate_gpt_parallel.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;
-elif [[ $MODEL == "gemini-1.5-pro-001" || $MODEL == "gemini-1.5-flash-001" || $MODEL == "gemini-1.5-pro-002" ]]; then
-  python3 src/translation/translate_gemini.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE;
-elif [[ $MODEL == "StarCoder" || $MODEL == "CodeGen" || $MODEL == "CodeGeeX" || $MODEL == "LLaMa" || $MODEL == "TB-Airoboros" || $MODEL == "TB-Vicuna" ]]; then
-  python3 src/translation/translate_open_source.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --gpu_id $GPU_ID;
-else
-  echo "Model not supported";
-fi
+python3 trans_openai_pytoc++.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;

@@ -53,7 +53,7 @@ class Translate:
             logging.error(f"directory {str(self.input_dir)} does not exist. raising FileNotFoundError")
             raise FileNotFoundError(f"Directory {str(self.input_dir)} does not exist.")
 
-        self.out_dir = Path(self.output_dir).joinpath(self.model, self.dataset)
+        self.out_dir = Path(self.output_dir).joinpath(self.model+"_"+self.mode, self.dataset)
         if not self.out_dir.exists():
             self.out_dir.mkdir(parents=True)
 
@@ -62,7 +62,7 @@ class Translate:
     def translate(self, source, target):
         logging.info("translate: starting translation")
         snippets = list(self.input_dir.joinpath(str(source), "Code").iterdir())
-
+        # snippets = snippets[0:100]
         def translate_snippet(source_file):
             code_id = source_file.stem
             code_as_str = source_file.read_text(encoding="utf-8")
@@ -75,6 +75,8 @@ class Translate:
 
             if self.mode == "direct":
                 translated_code = self.translator.translate(source, target, code_as_str)
+            elif self.mode == "o1":
+                translated_code = self.translator.translate_with_o1(source, target, code_as_str)
             elif self.mode == "context":
                 translated_code = self.translator.translate_with_context(source, target, code_as_str)
             elif self.mode == "thinking":
@@ -84,8 +86,7 @@ class Translate:
             elif self.mode == "pseudocode":
                 translated_code = self.translator.translate_with_pseudocode(source, target, code_as_str)
 
-            translated_code = re.sub('public\s*class\s*.+', 'public class ' + code_id + ' {', translated_code)
-
+            translated_code = re.sub(r'(public\s*class\s*.+|class\s*Main\s*)', 'public class ' + code_id + ' {',translated_code)
             if self.dataset == 'evalplus' and target == 'Java':
                 translated_code = 'package com.example;\n' + translated_code
 
