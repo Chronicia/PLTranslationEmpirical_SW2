@@ -39,4 +39,4 @@ TEMPERATURE=$7;
 GPU_ID=$8;
 MODE=${9:-"direct"};  # Set MODE to "direct" if not provided
 
-python3 trans_openai_pytoc++.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;
+python3 src/translation/translate_gpt_parallel.py --model $MODEL --dataset $DATASET --source_lang $SRC_LANG --target_lang $TRG_LANG --k $K --p $P --temperature $TEMPERATURE --mode $MODE;
