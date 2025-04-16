@@ -15,7 +15,7 @@ load_dotenv()
 
 class Translator:
     def __init__(self, model:str, max_tokens=16000, temperature=0.3, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
-        if "o1-mini" in model.lower():
+        if "o1-mini" in model.lower() or "o3-mini" in model.lower():
             self.promptCrafter = PromptCrafter("gpt_reasoning")
             self.runner = GPTRunner(model)
         elif "ft:" in model.lower():
