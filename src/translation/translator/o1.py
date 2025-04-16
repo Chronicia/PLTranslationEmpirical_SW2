@@ -135,9 +135,9 @@ Example of a valid JSON response:
             messages.append({"role": "user", "content": "Sometime wrong in your previous reasoning steps, go back to step 4 to fix the problem."})
         if step_data['next_action'] == 'solve':
             messages.append({"role": "user", "content": "In your previous respond, you said that you will perform something but you did not, perrform them in the next step."})
-        if step_count <= 15:
+        if step_count <= 8:
             messages.append({"role": "assistant", "content": "Wait? Did I make a mistake?"})
-            messages.append({"role": "user", "content": "Translate the code again and verify the result."})
+            messages.append({"role": "user", "content": "Translate the code again and verify the result. Be aware of the input and output."})
         elif step_data['next_action'] == 'final_answer' or step_count >= 50:
             break
         step_count += 1
