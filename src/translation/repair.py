@@ -1,5 +1,5 @@
 import os
-from openai import AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 import openai
 import logging
 import tiktoken
@@ -11,6 +11,7 @@ import torch
 from tqdm import tqdm
 import re
 import argparse
+from src.translation.translator.utils import extract_code_block
 
 os.makedirs(f'logs', exist_ok=True)
 logging.basicConfig(filename=f"logs/repair.log", level=logging.INFO, format='%(asctime)s %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -65,8 +66,8 @@ class Repair:
                 )
                 is_success = True
                 break
-            except client.OpenAIError as e:
-                return "# Token size exceeded."
+            except Exception as e:
+                return None
             except:
                 max_attempts -= 1
                 continue
@@ -97,7 +98,10 @@ class Repair:
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": content}]
         response = self.send_message_to_openai(message)
-        return response.replace(f"```{target.lower()}", "").replace("```", "")
+        if response is None:
+            return source_code
+        _, response = extract_code_block(response)
+        return response
 
     def translate_with_HF(self, model, tokenizer, device, source, target, source_code, translated_code, stderr, test_inputs, test_outputs, generated) -> str:
         content = ''
@@ -145,7 +149,7 @@ class Repair:
 
         tokenizer, model = None, None
         device = f'cuda:{self.args.gpu_id}' if torch.cuda.is_available() else 'cpu'
-        if self.args.model != 'gpt-4o-mini':
+        if self.args.model != 'gpt-4o-mini_direct':
             model_path = ''
             auth_token = None
             kwargs = {}
@@ -201,7 +205,7 @@ class Repair:
                 continue
 
             translated_code = ''
-            if self.args.model == 'gpt-4o-mini':
+            if self.args.model == 'gpt-4o-mini_direct':
                 translated_code = self.translate_with_OPENAI(
                     source, target, source_code, recent_translated_code, stderr_output, test_inputs, test_outputs, generated)
             elif self.args.model in ['LLaMa', 'StarCoder', 'CodeGen']:
