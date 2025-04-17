@@ -52,6 +52,48 @@ class Translator:
         logger.info(f"Translated code: \n{translated_code}")
         return translated_code
 
+    def translate_with_language_specific(self, from_language, to_language, code, additional_instruction=None):
+        logger.info(f"Translate from {from_language} to {to_language}")
+        logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
+        logger.info(f"Input Code: \n{code}")
+        system_prompt = "You are a helpful assistant."
+
+        if to_language.lower() == "c++":
+            user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                                  f"Ensure all necessary libraries are included (<algorithm>, <cmath>, <string>, etc.). For std::pair keys in unordered_map, provide a custom hash. Prefer stoll() over stoi for large numbers. When assigning strings to vector<char>, convert explicitly (e.g., vector<char>(s.begin(), s.end())). Verify return types and function compatibility.\n\n"
+                                  f"Output format: ```{to_language}\n code \n```")
+        elif to_language.lower() == "go":
+            user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                                  f"DO NOT declare extra variables or import extra libraries. Ensure consistent types (e.g., int vs. float64 in comparisons like A[i] * A[c] < x). Avoid % on floats (use math.Mod instead of % with math.Log2). Remove extra/missing parentheses\n\n"
+                                  f"Output format: ```{to_language}\n code \n```")
+        elif to_language.lower() == "java":
+            user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                                  f"Avoid type mismatch by ensuring correct variable assignments (int vs int[], int[][] vs int[], int vs double). Remove extra/missing parentheses\n\n"
+                                  f"Output format: ```{to_language}\n code \n```")
+        elif to_language.lower() == "c":
+            user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                                  f"Avoid type mismatch by ensuring matching types (e.g., double vs int in operations). Remove extra/missing parentheses\n\n"
+                                  f"Output format: ```{to_language}\n code \n```")
+        elif to_language.lower() == "python":
+            user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
+                                  f"Avoid SyntaxError\n\n"
+                                  f"Output format: ```{to_language}\n code \n```")
+
+
+        # Append messages to promptCrafter
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
+
+        # Run the prompt
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages())
+        logger.info(f"Response: \n{response}")
+
+        # Extract code block from response
+        _, translated_code = extract_code_block(response)
+        logger.info(f"Translated code: \n{translated_code}")
+        return translated_code
+
     def translate_with_o1(self, from_language, to_language, code, additional_instruction="You must think step by step to reach the final answer. Do not say \"I will something\" without answering, you must perform the task suggested by yourself."):
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
@@ -1129,7 +1171,7 @@ Here are some examples of GPT's thinking and responses in action:
             f"5. How can the translated code be improved or optimized?\n"
             f"6. Is the translated code weakly equivalent to the original code?\n"
             f"7. Is the translated code function exactly the same as the original code?\n"
-            f"7. Is the input and output of the translated completely identical to the original code?\n\n"
+            f"8. Is the input and output of the translated completely identical to the original code?\n\n"
             f"Your Task:\n"
             f"Output detailed reasoning for every decision.\n"
             f"Ensure the translated code is robust, idiomatic, and weakly equivalent.\n"
@@ -1178,7 +1220,7 @@ Here are some examples of GPT's thinking and responses in action:
 
 
 if __name__ == "__main__":
-    translator = Translator("deepseek-chat")
+    translator = Translator("gpt-4o-mini")
     user_prompt = """import java.io.BufferedReader ; import java.io.InputStreamReader ; import java.util.Arrays ; public class atcoder_ABC150_E { public static void main ( String [ ] args ) throws Exception { BufferedReader br = new BufferedReader ( new InputStreamReader ( System.in ) ) ; String [ ] sa = br.readLine ( ).split ( " " ) ; int n = Integer.parseInt ( sa [ 0 ] ) ; sa = br.readLine ( ).split ( " " ) ; int [ ] c = new int [ n ] ; for ( int i = 0 ; i < n ; i ++ ) { c [ i ] = Integer.parseInt ( sa [ i ] ) ; } br.close ( ) ; int mod = 1000000007 ; if ( n == 1 ) { System.out.println ( c [ 0 ] * 2 % mod ) ; return ; } Arrays.parallelSort ( c ) ; long b = power ( 2 , n ) ; long a = power ( 2 , n - 2 ) ; long ans = 0 ; for ( int i = 2 ; i <= n + 1 ; i ++ ) { long val = a * i % mod ; val *= c [ n + 1 - i ] ; val %= mod ; ans += val ; ans %= mod ; } ans *= b ; ans %= mod ; System.out.println ( ans ) ; } static long power ( long x , long n ) { if ( n == 0 ) { return 1 ; } int mod = 1000000007 ; long val = power ( x , n / 2 ) ; val = val * val % mod ; if ( n % 2 == 1 ) { val = val * x % mod ; } return val ; } }
 """
     additional_instruction = ""

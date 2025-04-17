@@ -24,7 +24,7 @@ def extract_code_block(text, retry_limit=5):
             # If no match, try to get code snippets by LLM and retry
             text = get_code_snippets(text)
         else:
-            return None
+            return None, None
 
 def get_code_snippets(text):
     system_prompt = f"You are a helpful assistant."
@@ -131,8 +131,10 @@ class LOGGER:
 
 if __name__ == "__main__":
     code = """
+
     import numpy
+```
     """
 
-    code = extract_code_block(code)
+    code = get_code_snippets(code)
     print(code)
