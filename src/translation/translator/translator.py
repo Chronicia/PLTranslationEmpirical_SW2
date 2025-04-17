@@ -257,7 +257,8 @@ class Translator:
         # Generate final result
         logger.info("Generating final result.")
         system_prompt = "You are an assistant to analyze programming code."
-        user_prompt = pseudocode + (f"\n\n Translate the pseudocode from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.")
+        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.\n\n"
+                              f"The following pseudocode may assist you in performing the translation task: \n{pseudocode}")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
@@ -275,8 +276,6 @@ class Translator:
 
 
     def get_pseudocode(self, language, code):
-        promptCrafter = PromptCrafter("gpt")
-        runner = DeepseekRunner("deepseek-reasoner", 8192)
         logger.info(f"Get pseudocode for {language}")
         system_prompt = (f"You are a code translation assistant. "
                          f"Your task is to convert {language} code into clear, concise, and language-agnostic pseudocode."
@@ -356,11 +355,11 @@ Translate the following Java code into pseudocode.
             raise ValueError(f"Language {language} is not supported.")
 
         # Append messages to promptCrafter
-        promptCrafter.clear_messages()
-        promptCrafter.append_message(system_prompt, role="system")
-        promptCrafter.append_message(user_prompt, role="user")
+        self.promptCrafter.clear_messages()
+        self.promptCrafter.append_message(system_prompt, role="system")
+        self.promptCrafter.append_message(user_prompt, role="user")
 
-        response = runner.run_with_retry(promptCrafter.get_messages(), temperature=0.7)
+        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
         logger.info(f"Pseudocode response: \n{response}")
         return response
 
