@@ -56,27 +56,27 @@ class Translator:
         logger.info(f"Translate from {from_language} to {to_language}")
         logger.info(f"Additional_instruction: {additional_instruction if additional_instruction else 'None'}")
         logger.info(f"Input Code: \n{code}")
-        system_prompt = "You are a helpful assistant."
+        system_prompt = "You are a software expert."
 
         if to_language.lower() == "c++":
             user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                                  f"Ensure all necessary libraries are included (<algorithm>, <cmath>, <string>, etc.). For std::pair keys in unordered_map, provide a custom hash. Prefer stoll() over stoi for large numbers. When assigning strings to vector<char>, convert explicitly (e.g., vector<char>(s.begin(), s.end())). Verify return types and function compatibility.\n\n"
+                                  f"Ensure function is defined before calling it. Ensure all necessary libraries are included (<algorithm>, <cmath>, <string>, etc.). For std::pair keys in unordered_map, provide a custom hash. Prefer stoll() over stoi for large numbers. When assigning strings to vector<char>, convert explicitly (e.g., vector<char>(s.begin(), s.end())). Verify return types and function compatibility. Ensure all parentheses are closed.\n\n"
                                   f"Output format: ```{to_language}\n code \n```")
         elif to_language.lower() == "go":
             user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                                  f"DO NOT declare extra variables or import extra libraries. Ensure consistent types (e.g., int vs. float64 in comparisons like A[i] * A[c] < x). Avoid % on floats (use math.Mod instead of % with math.Log2). Remove extra/missing parentheses\n\n"
+                                  f"Ensure function is defined before calling it. DO NOT declare extra variables or import extra libraries. Ensure consistent types (e.g., int vs. float64 in comparisons like A[i] * A[c] < x). Avoid % on floats (use math.Mod instead of % with math.Log2). Remove extra/missing parentheses\n\n"
                                   f"Output format: ```{to_language}\n code \n```")
         elif to_language.lower() == "java":
             user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                                  f"Avoid type mismatch by ensuring correct variable assignments (int vs int[], int[][] vs int[], int vs double). Remove extra/missing parentheses\n\n"
+                                  f"Ensure function is defined before calling it. Avoid type mismatch by ensuring correct variable assignments (int vs int[], int[][] vs int[], int vs double). Remove extra/missing parentheses\n\n"
                                   f"Output format: ```{to_language}\n code \n```")
         elif to_language.lower() == "c":
             user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                                  f"Avoid type mismatch by ensuring matching types (e.g., double vs int in operations). Remove extra/missing parentheses\n\n"
+                                  f"Ensure function is defined before calling it. Avoid type mismatch by ensuring matching types (e.g., double vs int in operations). Remove extra/missing parentheses\n\n"
                                   f"Output format: ```{to_language}\n code \n```")
         elif to_language.lower() == "python":
             user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}. \n"
-                                  f"Avoid SyntaxError\n\n"
+                                  f"Make sure the input and output matched the source code format. Avoid SyntaxError\n\n"
                                   f"Output format: ```{to_language}\n code \n```")
 
 
@@ -257,8 +257,7 @@ class Translator:
         # Generate final result
         logger.info("Generating final result.")
         system_prompt = "You are an assistant to analyze programming code."
-        user_prompt = code + (f"\n\n Translate the code from {from_language} to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.\n\n"
-                              f"The following pseudocode may assist you in performing the translation task: \n{pseudocode}")
+        user_prompt = pseudocode + (f"\n\n Translate the pseudocode to {to_language}. Print only the {to_language} code. \nYou may follow the additional instruction: {additional_instruction}.")
 
         # Append messages to promptCrafter
         self.promptCrafter.clear_messages()
@@ -354,12 +353,14 @@ Translate the following Java code into pseudocode.
         else:
             raise ValueError(f"Language {language} is not supported.")
 
+        promptCrafter = PromptCrafter("gpt")
+        runner = DeepseekRunner("deepseek-reasoner")
         # Append messages to promptCrafter
-        self.promptCrafter.clear_messages()
-        self.promptCrafter.append_message(system_prompt, role="system")
-        self.promptCrafter.append_message(user_prompt, role="user")
+        promptCrafter.clear_messages()
+        promptCrafter.append_message(system_prompt, role="system")
+        promptCrafter.append_message(user_prompt, role="user")
 
-        response = self.runner.run_with_retry(self.promptCrafter.get_messages(), temperature=0.7)
+        response = runner.run_with_retry(promptCrafter.get_messages(), temperature=0.7)
         logger.info(f"Pseudocode response: \n{response}")
         return response
 
